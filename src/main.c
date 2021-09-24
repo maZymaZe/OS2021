@@ -3,13 +3,14 @@
 #include <core/physical_memory.h>
 #include <core/virtual_memory.h>
 
-
 NORETURN void main() {
     init_char_device();
     init_console();
-	/* TODO: Lab1 print */
+    /* TODO: Lab1 print */
 
     init_memory_manager();
     init_virtual_memory();
 
+    /* TODO: Lab1 print */
+    printf("Hello world!\n");
 }
