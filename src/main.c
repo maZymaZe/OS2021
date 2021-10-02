@@ -7,10 +7,11 @@ NORETURN void main() {
     init_char_device();
     init_console();
     /* TODO: Lab1 print */
-
+    printf("Hello world!\n");
     init_memory_manager();
     init_virtual_memory();
-
+    printf("Hello world end!\n");
+    vm_test();
+    printf("bye~\n");
     /* TODO: Lab1 print */
-    printf("Hello world!\n");
 }
