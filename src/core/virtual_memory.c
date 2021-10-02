@@ -104,7 +104,7 @@ int my_uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, uint64_t pa) {
         if (*pte & PTE_VALID)
             PANIC("remap");
         *pte = pa | PTE_PAGE | AF_USED | SH_INNER | PTE_USER;
-        printf("!%llx pte:%llx!\n", *pte, pte);
+        // printf("!%llx pte:%llx!\n", *pte, pte);
         if (a == last)
             break;
         a += PGSIZE;
@@ -127,7 +127,7 @@ void init_virtual_memory() {
 void vm_test() {
     /* TODO: Lab2 memory*/
 
-    // const int TEST_RUNS = 200;
+    const int TEST_RUNS = 200;
 
     // // test1
     // void* gen[TEST_RUNS];
@@ -144,27 +144,27 @@ void vm_test() {
     //     kfree(gen[i]);
     // }
 
-    // // test2
-    // void* v[TEST_RUNS];
-    // void* p[TEST_RUNS];
-    // void* pgdir = pgdir_init();
-    // for (int i = 0; i < TEST_RUNS; i++) {
-    //     v[i] = i * PGSIZE;
-    // }
-    // for (int i = 0; i < TEST_RUNS; i++) {
-    //     uvm_map(pgdir, v[i], PGSIZE, p[i] = K2P(kalloc()));
-    // }
-    // for (int i = 0; i < TEST_RUNS; i++) {
-    //     printf("%llx\t%llx\n", p[i],
-    //            P2K(PTE_ADDRESS(*my_pgdir_walk(pgdir, v[i], 0))));
-    //     if (p[i] != PTE_ADDRESS(*my_pgdir_walk(pgdir, v[i], 0))) {
-    //         PANIC("ERR MAP");
-    //     }
-    // }
-    // for (int i = 0; i < TEST_RUNS; i++) {
-    //     kfree(P2K(p[i]));
-    // }
-    // vm_free(pgdir);
+    // test2
+    void* v[TEST_RUNS];
+    void* p[TEST_RUNS];
+    void* pgdir = pgdir_init();
+    for (int i = 0; i < TEST_RUNS; i++) {
+        v[i] = i * PGSIZE;
+    }
+    for (int i = 0; i < TEST_RUNS; i++) {
+        uvm_map(pgdir, v[i], PGSIZE, p[i] = K2P(kalloc()));
+    }
+    for (int i = 0; i < TEST_RUNS; i++) {
+        // printf("%llx\t%llx\n", p[i],
+        //        P2K(PTE_ADDRESS(*my_pgdir_walk(pgdir, v[i], 0))));
+        if (p[i] != PTE_ADDRESS(*my_pgdir_walk(pgdir, v[i], 0))) {
+            PANIC("ERR MAP");
+        }
+    }
+    for (int i = 0; i < TEST_RUNS; i++) {
+        kfree(P2K(p[i]));
+    }
+    vm_free(pgdir);
 
     // Certify that your code works!
 }
