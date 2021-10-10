@@ -103,7 +103,7 @@ int my_uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, uint64_t pa) {
             return -1;
         if (*pte & PTE_VALID)
             PANIC("remap");
-        *pte = pa | PTE_PAGE | AF_USED | SH_INNER | PTE_USER;
+        *pte = pa | PTE_USER_DATA;
         // printf("!%llx pte:%llx!\n", *pte, pte);
         if (a == last)
             break;
@@ -145,26 +145,60 @@ void vm_test() {
     // }
 
     // test2
-    void* v[TEST_RUNS];
-    void* p[TEST_RUNS];
-    void* pgdir = pgdir_init();
-    for (int i = 0; i < TEST_RUNS; i++) {
-        v[i] = i * PGSIZE;
+    // void* v[TEST_RUNS];
+    // void* p[TEST_RUNS];
+    // void* pgdir = pgdir_init();
+    // for (int i = 0; i < TEST_RUNS; i++) {
+    //     v[i] = i * PGSIZE;
+    // }
+    // for (int i = 0; i < TEST_RUNS; i++) {
+    //     uvm_map(pgdir, v[i], PGSIZE, p[i] = K2P(kalloc()));
+    // }
+    // for (int i = 0; i < TEST_RUNS; i++) {
+    //     // printf("%llx\t%llx\n", p[i],
+    //     //        P2K(PTE_ADDRESS(*my_pgdir_walk(pgdir, v[i], 0))));
+    //     if (p[i] != PTE_ADDRESS(*my_pgdir_walk(pgdir, v[i], 0))) {
+    //         PANIC("ERR MAP");
+    //     }
+    // }
+    // for (int i = 0; i < TEST_RUNS; i++) {
+    //     kfree(P2K(p[i]));
+    // }
+    // vm_free(pgdir);
+
+    *((int64_t*)P2K(0)) = 0xac;
+    char* p = kalloc();
+    memset(p, 0, PAGE_SIZE);
+    uvm_map((uint64_t*)p, (void*)0x1000, PAGE_SIZE, 0);
+    uvm_switch(p);
+    PTEntry* pte = pgdir_walk(p, (void*)0x1000, 0);
+    if (pte == 0) {
+        puts("walk should not return 0");
+        while (1)
+            ;
     }
-    for (int i = 0; i < TEST_RUNS; i++) {
-        uvm_map(pgdir, v[i], PGSIZE, p[i] = K2P(kalloc()));
+    if (((uint64_t)pte >> 48) == 0) {
+        puts("pte should be virtual address");
+        while (1)
+            ;
     }
-    for (int i = 0; i < TEST_RUNS; i++) {
-        // printf("%llx\t%llx\n", p[i],
-        //        P2K(PTE_ADDRESS(*my_pgdir_walk(pgdir, v[i], 0))));
-        if (p[i] != PTE_ADDRESS(*my_pgdir_walk(pgdir, v[i], 0))) {
-            PANIC("ERR MAP");
-        }
+    if ((*pte) >> 48 != 0) {
+        puts("*pte should store physical address");
+        while (1)
+            ;
     }
-    for (int i = 0; i < TEST_RUNS; i++) {
-        kfree(P2K(p[i]));
+    if (((*pte) & PTE_USER_DATA) != PTE_USER_DATA) {
+        puts("*pte should contain USE_DATA flags");
+        while (1)
+            ;
     }
-    vm_free(pgdir);
+    if (*((int64_t*)0x1000) == 0xac) {
+        puts("Test_Map_Region Pass!");
+    } else {
+        puts("Test_Map_Region Fail!");
+        while (1)
+            ;
+    }
 
     // Certify that your code works!
 }
