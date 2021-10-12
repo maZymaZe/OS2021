@@ -42,10 +42,11 @@ NORETURN void main() {
     /* TODO: Lab3 uncomment to test interrupt */
     // test_kernel_interrupt();
     spawn_init_process();
-    enter_scheduler();
 
     printf("Hello world end!\n");
-    vm_test();
+    arch_enable_trap();
+    enter_scheduler();
+    // vm_test();
     printf("bye~\n");
     /* TODO: Lab1 print */
 }

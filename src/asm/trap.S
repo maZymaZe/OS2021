@@ -44,7 +44,7 @@ trap_entry:
 
     /* TODO: Lab3 Interrupt */
     add x0, sp, #0
-    bl trap
+    bl trap_global_handler
 
 /* return falls through to `trap_return`. */
 .global trap_return
