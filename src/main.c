@@ -40,11 +40,11 @@ NORETURN void main() {
     init_system_per_cpu();
 
     /* TODO: Lab3 uncomment to test interrupt */
-    // test_kernel_interrupt();
+    test_kernel_interrupt();
     spawn_init_process();
 
     printf("Hello world end!\n");
-    arch_enable_trap();
+    // arch_enable_trap();
     enter_scheduler();
     // vm_test();
     printf("bye~\n");
