@@ -55,7 +55,7 @@ static PTEntriesPtr my_pgdir_walk(PTEntriesPtr pgdir, void* vak, int alloc) {
         } else {
             if (!alloc || (pgdir = (PTEntriesPtr)kalloc()) == 0)
                 return 0;
-            *pte = K2P((uint64_t)pgdir) | PTE_PAGE;
+            *pte = K2P((uint64_t)pgdir) | PTE_TABLE;
         }
     }
     return &pgdir[PX(0, vak)];
