@@ -1,45 +1,92 @@
 
-#include <core/proc.h>
 #include <aarch64/mmu.h>
-#include <core/virtual_memory.h>
-#include <core/physical_memory.h>
 #include <common/string.h>
-#include <core/sched.h>
 #include <core/console.h>
+#include <core/physical_memory.h>
+#include <core/proc.h>
+#include <core/sched.h>
+#include <core/virtual_memory.h>
 
 void forkret();
 extern void trap_return();
+
+struct PROCESS_TABLE {
+    struct proc procs[NPROC];
+} pt;
+int PID_GEN = 1;
+
 /*
  * Look through the process table for an UNUSED proc.
  * If found, change state to EMBRYO and initialize
  * state (allocate stack, clear trapframe, set context for switch...)
  * required to run in the kernel. Otherwise return 0.
  */
-static struct proc *alloc_proc() {
-    struct proc *p;
+static struct proc* alloc_proc() {
+    struct proc* p;
     /* TODO: Lab3 Process */
+    for (int i = 0; i < NPROC; i++) {
+        if (pt.procs[i].state == UNUSED) {
+            pt.procs[i].state = EMBRYO;
+            pt.procs[i].pid = PID_GEN++;
+
+            void* stp = kalloc();
+            // kalloc cleaned the page
+            if (stp == 0) {
+                pt.procs[i].state = UNUSED;
+                return 0;
+            }
+            pt.procs[i].kstack = stp;
+            pt.procs[i].tf = (Trapframe*)(stp + KSTACKSIZE - sizeof(Trapframe));
+            (*(uint64_t*)(stp + KSTACKSIZE - sizeof(Trapframe) - 8)) =
+                trap_return;
+            (*(uint64_t*)(stp + KSTACKSIZE - sizeof(Trapframe) - 8 - 8)) =
+                stp + KSTACKSIZE;
+            pt.procs[i].context = (stp + KSTACKSIZE - sizeof(Trapframe) - 8 -
+                                   8 - sizeof(struct context));
+            pt.procs[i].context->r30 = (uint64_t)forkret + 8;
+            return &(pt.procs[i]);
+        }
+    }
+    return 0;
 }
 
 /*
  * Set up first user process(Only used once).
  * Set trapframe for the new process to run
- * from the beginning of the user process determined 
+ * from the beginning of the user process determined
  * by uvm_init
  */
 void spawn_init_process() {
-    struct proc *p;
+    struct proc* p;
     extern char icode[], eicode[];
     p = alloc_proc();
 
     /* TODO: Lab3 Process */
+    if (p == 0) {
+        PANIC("failed alloc proc");
+    }
+    void* newpgdir = pgdir_init();
+    if (newpgdir == 0) {
+        PANIC("failed to alloc pgdir");
+    }
+
+    uvm_init(p->pgdir, icode, eicode);
+
+    p->tf->elr_el1 = 0;
+    p->tf->spsr_el1 = 0;
+    p->tf->sp_el0 = PGSIZE;
+    p->tf->x30 = 0;
+
+    p->state = RUNNABLE;
+    p->sz = PGSIZE;
 }
 
 /*
  * A fork child will first swtch here, and then "return" to user space.
  */
 void forkret() {
-	/* TODO: Lab3 Process */
-
+    /* TODO: Lab3 Process */
+    return;
 }
 
 /*
@@ -48,7 +95,7 @@ void forkret() {
  * until its parent calls wait() to find out it exited.
  */
 NO_RETURN void exit() {
-    struct proc *p = thiscpu()->proc;
+    struct proc* p = thiscpu()->proc;
     /* TODO: Lab3 Process */
-	
+    p->state = ZOMBIE;
 }
