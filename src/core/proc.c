@@ -32,30 +32,25 @@ int PID_GEN = 1;
 static struct proc* alloc_proc() {
     struct proc* p;
     /* TODO: Lab3 Process */
-    for (int i = 0; i < NPROC; i++) {
-        if (pt.procs[i].state == UNUSED) {
-            pt.procs[i].state = EMBRYO;
-            pt.procs[i].pid = PID_GEN++;
+    p = alloc_pcb();
 
-            void* stp = kalloc();
-            // kalloc cleaned the page
-            if (stp == 0) {
-                pt.procs[i].state = UNUSED;
-                return 0;
-            }
-            pt.procs[i].kstack = stp;
-            pt.procs[i].tf = (Trapframe*)(stp + KSTACKSIZE - sizeof(Trapframe));
-            (*(uint64_t*)(stp + KSTACKSIZE - sizeof(Trapframe) - 8)) =
-                trap_return;
-            (*(uint64_t*)(stp + KSTACKSIZE - sizeof(Trapframe) - 8 - 8)) =
-                stp + KSTACKSIZE;
-            pt.procs[i].context = (stp + KSTACKSIZE - sizeof(Trapframe) - 8 -
-                                   8 - sizeof(struct context));
-            pt.procs[i].context->r30 = (uint64_t)forkret + 8;
-            return &(pt.procs[i]);
-        }
+    p->state = EMBRYO;
+
+    void* stp = kalloc();
+    // kalloc cleaned the page
+    if (stp == 0) {
+        p->state = UNUSED;
+        return 0;
     }
-    return 0;
+    p->kstack = stp;
+    p->tf = (Trapframe*)(stp + KSTACKSIZE - sizeof(Trapframe));
+    (*(uint64_t*)(stp + KSTACKSIZE - sizeof(Trapframe) - 8)) = trap_return;
+    (*(uint64_t*)(stp + KSTACKSIZE - sizeof(Trapframe) - 8 - 8)) =
+        stp + KSTACKSIZE;
+    p->context =
+        (stp + KSTACKSIZE - sizeof(Trapframe) - 8 - 8 - sizeof(struct context));
+    p->context->r30 = (uint64_t)forkret + 8;
+    return p;
 }
 
 /*
@@ -83,8 +78,11 @@ void spawn_init_process() {
     if (newpgdir == 0) {
         PANIC("failed to alloc pgdir");
     }
-
-    uvm_init(p->pgdir, icode, eicode);
+    void* newpage = kalloc();
+    uvm_map(newpgdir, 0, PGSIZE, K2P(newpage));
+    for (int i = 0; icode + i != eicode; ++i) {
+        *((char*)(newpage + i)) = (icode + i);
+    }
 
     p->tf->elr_el1 = 0;
     p->tf->spsr_el1 = 0;
