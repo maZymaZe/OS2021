@@ -34,11 +34,12 @@ static void scheduler_simple() {
     for (;;) {
         /* Loop over process table looking for process to run. */
         /* TODO: Lab3 Schedule */
-        for (int i = 0; i < NPROC; i++) {
-            if (ptable.proc[i].state == RUNNABLE) {
-                ptable.proc[i].state = RUNNING;
-                c->proc = &(ptable.proc[i]);
-                swtch(&(c->scheduler->context), ptable.proc[i].context);
+        for (p = ptable.proc; p != ptable.proc + NPROC; p++) {
+            if (p->state == RUNNABLE) {
+                uvm_switch(p->pgdir);
+                p->state = RUNNING;
+                c->proc = p;
+                swtch(&(c->scheduler->context), p->context);
                 c->proc = NULL;
             }
         }
@@ -51,7 +52,7 @@ static void scheduler_simple() {
 static void sched_simple() {
     /* TODO: Lab3 Schedule */
     struct proc* p = thiscpu()->proc;
-    swtch(&p->context, thiscpu()->scheduler);
+    swtch(&p->context, thiscpu()->scheduler->context);
 }
 
 /*
@@ -66,4 +67,5 @@ static struct proc* alloc_pcb_simple() {
             return &(ptable.proc[i]);
         }
     }
+    return 0;
 }

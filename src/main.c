@@ -32,7 +32,7 @@ NORETURN void main() {
     init_interrupt();
     init_char_device();
     init_console();
-    /* TODO: Lab1 print */
+    /* TO-DO: Lab1 print */
     printf("Hello world!\n");
     init_memory_manager();
     init_virtual_memory();
@@ -48,5 +48,5 @@ NORETURN void main() {
     enter_scheduler();
     // vm_test();
     printf("bye~\n");
-    /* TODO: Lab1 print */
+    /* TO-DO: Lab1 print */
 }

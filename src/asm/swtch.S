@@ -24,7 +24,7 @@ swtch:
     stp x21, x22, [sp, #-16]!
     stp x19, x20, [sp, #-16]!
     stp x17, x18, [sp, #-16]!
-    str x16, [sp, #-8]!
+    stp x15, x16, [sp, #-16]!
 
 
     //st sp
@@ -38,7 +38,7 @@ swtch:
 
     //ld r
 
-    ldr	x16, [sp], #8
+    ldp	x15, x16, [sp], #16
     ldp	x17, x18, [sp], #16
     ldp	x19, x20, [sp], #16
     ldp	x21, x22, [sp], #16
@@ -49,5 +49,5 @@ swtch:
 
     //b
 
-    br x30
+    br x15
 	

@@ -27,7 +27,7 @@ int uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, uint64_t pa) {
 }
 
 void uvm_switch(PTEntriesPtr pgdir) {
-    // FIXME: Use NG and ASID for efficiency.
+    // FIX-ME: Use NG and ASID for efficiency.
     arch_set_ttbr0(K2P(pgdir));
 }
 
@@ -36,7 +36,7 @@ void uvm_switch(PTEntriesPtr pgdir) {
  */
 
 static PTEntriesPtr my_pgdir_init() {
-    /* TODO: Lab2 memory*/
+    /* TO-DO: Lab2 memory*/
     return kalloc();
 }
 
@@ -47,7 +47,7 @@ static PTEntriesPtr my_pgdir_init() {
  */
 
 static PTEntriesPtr my_pgdir_walk(PTEntriesPtr pgdir, void* vak, int alloc) {
-    /* TODO: Lab2 memory*/
+    /* TO-DO: Lab2 memory*/
     for (int level = 3; level > 0; level--) {
         uint64_t* pte = &(pgdir[PX(level, vak)]);
         if (*pte & PTE_VALID) {
@@ -79,7 +79,7 @@ void my_vm_free_r(PTEntriesPtr pgdir, int x) {
     kfree((void*)pgdir);
 }
 void my_vm_free(PTEntriesPtr pgdir) {
-    /* TODO: Lab2 memory*/
+    /* TO-DO: Lab2 memory*/
     my_vm_free_r(pgdir, 0);
 }
 
@@ -91,7 +91,7 @@ void my_vm_free(PTEntriesPtr pgdir) {
  */
 
 int my_uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, uint64_t pa) {
-    /* TODO: Lab2 memory*/
+    /* TO-DO: Lab2 memory*/
     uint64_t a, last;
     PTEntriesPtr pte;
     if (!sz)
@@ -125,7 +125,7 @@ void init_virtual_memory() {
 }
 
 void vm_test() {
-    /* TODO: Lab2 memory*/
+    /* TO-DO: Lab2 memory*/
 
     const int TEST_RUNS = 200;
 

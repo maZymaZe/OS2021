@@ -10,7 +10,7 @@ if(CMAKE_SYSTEM_PROCESSOR EQUAL "aarch64")
     set(aarch64_gdb "gdb")
 else()
     set(aarch64_prefix "aarch64-linux-gnu-")
-    set(aarch64_gdb "gdb-multiarch")
+    set(aarch64_gdb "gdb")
 endif()
 
 set(aarch64_gcc "${aarch64_prefix}gcc")

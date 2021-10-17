@@ -10,11 +10,6 @@
 void forkret();
 extern void trap_return();
 
-struct PROCESS_TABLE {
-    struct proc procs[NPROC];
-} pt;
-int PID_GEN = 1;
-
 /*
  * Look through the process table for an UNUSED proc.
  * If found, change state to EMBRYO and initialize
@@ -33,23 +28,23 @@ static struct proc* alloc_proc() {
     struct proc* p;
     /* TODO: Lab3 Process */
     p = alloc_pcb();
-
+    if (p == 0)
+        return 0;
     p->state = EMBRYO;
-
     void* stp = kalloc();
     // kalloc cleaned the page
     if (stp == 0) {
         p->state = UNUSED;
         return 0;
     }
-    p->kstack = stp;
+
+    p->kstack = stp + KSTACKSIZE;
     p->tf = (Trapframe*)(stp + KSTACKSIZE - sizeof(Trapframe));
-    (*(uint64_t*)(stp + KSTACKSIZE - sizeof(Trapframe) - 8)) = trap_return;
-    (*(uint64_t*)(stp + KSTACKSIZE - sizeof(Trapframe) - 8 - 8)) =
-        stp + KSTACKSIZE;
+
     p->context =
-        (stp + KSTACKSIZE - sizeof(Trapframe) - 8 - 8 - sizeof(struct context));
-    p->context->r30 = (uint64_t)forkret + 8;
+        (stp + KSTACKSIZE - sizeof(Trapframe) - sizeof(struct context));
+    p->context->r30 = (uint64_t)trap_return;
+    p->context->r15 = (uint64_t)forkret;
     return p;
 }
 
@@ -78,11 +73,11 @@ void spawn_init_process() {
     if (newpgdir == 0) {
         PANIC("failed to alloc pgdir");
     }
+    p->pgdir = newpgdir;
     void* newpage = kalloc();
+    memcpy(newpage, icode, eicode - icode);
+    strncpy(p->name, "initproc", sizeof(p->name));
     uvm_map(newpgdir, 0, PGSIZE, K2P(newpage));
-    for (int i = 0; icode + i != eicode; ++i) {
-        *((char*)(newpage + i)) = (icode + i);
-    }
 
     p->tf->elr_el1 = 0;
     p->tf->spsr_el1 = 0;
@@ -110,4 +105,5 @@ NO_RETURN void exit() {
     struct proc* p = thiscpu()->proc;
     /* TODO: Lab3 Process */
     p->state = ZOMBIE;
+    sched();
 }

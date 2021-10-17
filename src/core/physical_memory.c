@@ -20,7 +20,7 @@ static void freelist_free(void* datastructure_ptr, void* page_address);
  */
 static void* freelist_alloc(void* datastructure_ptr) {
     FreeListNode* f = ((FreeListNode*)datastructure_ptr)->next;
-    /* TODO: Lab2 memory*/
+    /* TO-DO: Lab2 memory*/
     if (f) {
         ((FreeListNode*)(pmem.struct_ptr))->next = f->next;
         for (int i = 0; i < PAGE_SIZE; i++)
@@ -40,7 +40,7 @@ static void freelist_free(void* datastructure_ptr, void* page_address) {
     FreeListNode* f = (FreeListNode*)datastructure_ptr;
     for (int i = 0; i < PAGE_SIZE; i++)
         ((char*)page_address)[i] = 0;
-    /* TODO: Lab2 memory*/
+    /* TO-DO: Lab2 memory*/
     FreeListNode* p = (FreeListNode*)page_address;
     p->next = f->next;
     f->next = p;
@@ -55,7 +55,7 @@ static void freelist_init(void* datastructure_ptr, void* start, void* end) {
     // FreeListNode* f = (FreeListNode*)datastructure_ptr;
     // void* p = start;
     // f->next = p;
-    // /* TODO: Lab2 memory*/
+    // /* TO-DO: Lab2 memory*/
 
     // while (p + PAGE_SIZE < end) {
     //     FreeListNode* q = (FreeListNode*)p;
@@ -74,7 +74,7 @@ static void init_PMemory(PMemory* pmem_ptr) {
 }
 
 void init_memory_manager(void) {
-    // HACK Raspberry pi 4b.
+    // HA-CK Raspberry pi 4b.
     // size_t phystop = MIN(0x3F000000, mbox_get_arm_memory());
     size_t phystop = 0x3F000000;
 

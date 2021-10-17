@@ -45,7 +45,7 @@ void trap_global_handler(Trapframe* frame) {
 
         default: {
             // TODO: should exit current process here.
-            PANIC("???");
+            exit();
             // exit(1);
         }
     }

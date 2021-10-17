@@ -8,14 +8,16 @@
  */
 u64 syscall_dispatch(Trapframe* frame) {
     /* TODO: Lab3 Syscall */
-    struct proc* nowproc = thiscpu()->proc;
-    switch (nowproc->tf->x0) {
+
+    switch (frame->x8) {
         case SYS_myexit:
-            return sys_myexit();
+            sys_myexit();
+            break;
         case SYS_myexecve:
-            return sys_myexecve("");
+            sys_myexecve((char*)frame->x0);
+            break;
         default:
             PANIC("unknown syscallno");
     }
-    return -1;
+    return 0;
 }
