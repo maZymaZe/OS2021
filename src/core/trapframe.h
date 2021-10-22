@@ -12,7 +12,7 @@
  * in your trapframe.
  */
 typedef struct {
-    /* TODO: Lab3 Interrupt */
+    /* TO-DO: Lab3 Interrupt */
     uint64_t elr_el1;   // pc
     uint64_t spsr_el1;  // spsr
     uint64_t sp_el0;    // sp

@@ -14,7 +14,7 @@
  */
 .global swtch
 swtch:
-    /* TODO: Lab3 Schedule */
+    /* TO-DO: Lab3 Schedule */
     
     //st r
     stp x29, x30, [sp, #-16]!
