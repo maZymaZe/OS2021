@@ -9,7 +9,7 @@
 
 void forkret();
 extern void trap_return();
-
+extern void initenter();
 /*
  * Look through the process table for an UNUSED proc.
  * If found, change state to EMBRYO and initialize
@@ -43,8 +43,7 @@ static struct proc* alloc_proc() {
 
     p->context =
         (stp + KSTACKSIZE - sizeof(Trapframe) - sizeof(struct context));
-    p->context->r30 = (uint64_t)trap_return;
-    p->context->r15 = (uint64_t)forkret;
+    p->context->r30 = (uint64_t)initenter;
     return p;
 }
 

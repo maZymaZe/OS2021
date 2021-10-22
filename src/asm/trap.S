@@ -46,6 +46,10 @@ trap_entry:
     add x0, sp, #0
     bl trap_global_handler
 
+.global initenter
+initenter:
+    bl forkret
+
 /* return falls through to `trap_return`. */
 .global trap_return
 trap_return:

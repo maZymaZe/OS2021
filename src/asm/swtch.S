@@ -49,5 +49,5 @@ swtch:
 
     //b
 
-    br x15
+    ret
 	
