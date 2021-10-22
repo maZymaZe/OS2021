@@ -4,7 +4,7 @@
 #include <core/physical_memory.h>
 
 extern char end[];
-PMemory pmem;
+PMemory pmem; /* TODO: Lab5 multicore: Add locks where needed */
 FreeListNode head;
 /*
  * Editable, as long as it works as a memory manager.
@@ -82,6 +82,7 @@ void init_memory_manager(void) {
     void* ROUNDUP_end = ROUNDUP((void*)end, PAGE_SIZE);
     init_PMemory(&pmem);
     pmem.page_init(pmem.struct_ptr, ROUNDUP_end, (void*)P2K(phystop));
+    init_spinlock(&pmem.lock, "pmem");
 }
 
 /*

@@ -93,6 +93,9 @@ void spawn_init_process() {
  */
 void forkret() {
     /* TODO: Lab3 Process */
+
+    release_sched_lock();
+    /* TODO: Lab3 Process */
     return;
 }
 
