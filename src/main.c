@@ -2,12 +2,12 @@
 #include <common/string.h>
 #include <core/console.h>
 #include <core/physical_memory.h>
-#include <core/virtual_memory.h>
+#include <core/proc.h>
 #include <core/sched.h>
 #include <core/trap.h>
+#include <core/virtual_memory.h>
 #include <driver/clock.h>
 #include <driver/interrupt.h>
-#include <core/proc.h>
 
 struct cpu cpus[NCPU];
 
@@ -32,14 +32,14 @@ NORETURN void main() {
     init_interrupt();
     init_char_device();
     init_console();
-	/* TODO: Lab1 print */
-
+    /* TO-DO: Lab1 print */
+    printf("Hello world!\n");
     init_memory_manager();
     init_virtual_memory();
 
     init_system_per_cpu();
 
-	/* TODO: Lab3 uncomment to test interrupt */
+    /* TODO: Lab3 uncomment to test interrupt */
     // test_kernel_interrupt();
     if (cpuid() == 0) {
         spawn_init_process();
@@ -48,4 +48,10 @@ NORETURN void main() {
         enter_scheduler();
     }
 
+    printf("Hello world end!\n");
+
+    enter_scheduler();
+    // vm_test();
+    printf("bye~\n");
+    /* TO-DO: Lab1 print */
 }

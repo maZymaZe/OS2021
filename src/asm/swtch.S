@@ -15,4 +15,39 @@
 .global swtch
 swtch:
     /* TODO: Lab3 Schedule */
+    
+    //st r
+    stp x29, x30, [sp, #-16]!
+    stp x27, x28, [sp, #-16]!
+    stp x25, x26, [sp, #-16]!
+    stp x23, x24, [sp, #-16]!
+    stp x21, x22, [sp, #-16]!
+    stp x19, x20, [sp, #-16]!
+    stp x17, x18, [sp, #-16]!
+    stp x15, x16, [sp, #-16]!
+
+
+    //st sp
+
+    mov x21, sp
+    str x21, [x0]
+
+    //ld sp
+
+    mov sp, x1
+
+    //ld r
+
+    ldp	x15, x16, [sp], #16
+    ldp	x17, x18, [sp], #16
+    ldp	x19, x20, [sp], #16
+    ldp	x21, x22, [sp], #16
+    ldp	x23, x24, [sp], #16
+    ldp	x25, x26, [sp], #16
+    ldp	x27, x28, [sp], #16
+    ldp x29, x30, [sp], #16
+
+    //b
+
+    br x15
 	
