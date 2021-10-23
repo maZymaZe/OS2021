@@ -56,6 +56,7 @@ static void scheduler_simple() {
     for (;;) {
         /* Loop over process table looking for process to run. */
         /* TODO: Lab3 Schedule */
+        acquire_ptable_lock();
         for (p = ptable.proc; p != ptable.proc + NPROC; p++) {
             if (p->state == RUNNABLE) {
                 uvm_switch(p->pgdir);
@@ -65,6 +66,7 @@ static void scheduler_simple() {
                 c->proc = NULL;
             }
         }
+        release_ptable_lock();
     }
 }
 
@@ -73,14 +75,13 @@ static void scheduler_simple() {
  */
 static void sched_simple() {
     /* TODO: Your code here. */
+
     if (!holding_spinlock(&ptable.lock)) {
         PANIC("sched: not holding ptable lock");
     }
     if (thiscpu()->proc->state == RUNNING) {
         PANIC("sched: process running");
     }
-    /* TODO: Lab3 Schedule */
-
     /* TODO: Lab3 Schedule */
     struct proc* p = thiscpu()->proc;
     swtch(&p->context, thiscpu()->scheduler->context);

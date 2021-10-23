@@ -27,14 +27,18 @@ extern void initenter();
 static struct proc* alloc_proc() {
     struct proc* p;
     /* TODO: Lab3 Process */
+    acquire_sched_lock();
     p = alloc_pcb();
-    if (p == 0)
+    if (p == 0) {
+        release_sched_lock();
         return 0;
+    }
     p->state = EMBRYO;
     void* stp = kalloc();
     // kalloc cleaned the page
     if (stp == 0) {
         p->state = UNUSED;
+        release_sched_lock();
         return 0;
     }
 
@@ -44,6 +48,7 @@ static struct proc* alloc_proc() {
     p->context =
         (stp + KSTACKSIZE - sizeof(Trapframe) - sizeof(struct context));
     p->context->r30 = (uint64_t)initenter;
+
     return p;
 }
 
@@ -85,6 +90,7 @@ void spawn_init_process() {
 
     p->state = RUNNABLE;
     p->sz = PGSIZE;
+    release_sched_lock();
 }
 
 /*
@@ -92,7 +98,6 @@ void spawn_init_process() {
  */
 void forkret() {
     /* TODO: Lab3 Process */
-
     release_sched_lock();
     /* TODO: Lab3 Process */
     return;
@@ -106,6 +111,7 @@ void forkret() {
 NO_RETURN void exit() {
     struct proc* p = thiscpu()->proc;
     /* TODO: Lab3 Process */
+    acquire_sched_lock();
     p->state = ZOMBIE;
     sched();
 }

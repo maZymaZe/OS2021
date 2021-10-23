@@ -45,6 +45,7 @@ trap_entry:
     /* TO-DO: Lab3 Interrupt */
     add x0, sp, #0
     bl trap_global_handler
+    b trap_return
 
 .global initenter
 initenter:

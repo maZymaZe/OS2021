@@ -99,11 +99,15 @@ void free_range(void* start, void* end) {
  * Corrupt the page by filling non-zero value in it for debugging.
  */
 void* kalloc(void) {
+    acquire_spinlock(&pmem.lock);
     void* p = pmem.page_alloc(pmem.struct_ptr);
+    release_spinlock(&pmem.lock);
     return p;
 }
 
 /* Free the physical memory pointed at by page_address. */
 void kfree(void* page_address) {
+    acquire_spinlock(&pmem.lock);
     pmem.page_free(pmem.struct_ptr, page_address);
+    release_spinlock(&pmem.lock);
 }
