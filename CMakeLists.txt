@@ -46,4 +46,5 @@ add_custom_target(debug
             -ex "set architecture aarch64"
             -ex "file ${kernel_elf}"
             -ex "target remote localhost:1234"
+            -ex "source ~/peda/peda.py"
     DEPENDS kernel)
