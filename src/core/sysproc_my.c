@@ -2,7 +2,7 @@
 #include <core/proc.h>
 #include <core/syscall.h>
 
-void sys_myexecve(char *s) {
+void sys_myexecve(char* s) {
     printf("sys_exec: executing %s\n", s);
     return;
 }

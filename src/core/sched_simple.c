@@ -7,10 +7,12 @@
 struct {
     struct proc proc[NPROC];
     SpinLock lock;
-} ptable /* TODO: Lab4 multicore: Add locks where needed in this file or others */;
+} ptable /* TODO: Lab4 multicore: Add locks where needed in this file or others
+          */
+    ;
 
 static void scheduler_simple();
-static struct proc *alloc_pcb_simple();
+static struct proc* alloc_pcb_simple();
 static void sched_simple();
 static void init_sched_simple();
 static void acquire_ptable_lock();
@@ -24,7 +26,7 @@ struct sched_op simple_op = {.scheduler = scheduler_simple,
 struct scheduler simple_scheduler = {.op = &simple_op};
 
 int nextpid = 1;
-void swtch(struct context **, struct context *);
+void swtch(struct context**, struct context*);
 
 static void init_sched_simple() {
     init_spinlock(&ptable.lock, "ptable");
@@ -47,13 +49,24 @@ static void release_ptable_lock() {
  *        via swtch back to the scheduler.
  */
 static void scheduler_simple() {
-    struct proc *p;
-    struct cpu *c = thiscpu();
+    struct proc* p;
+    struct cpu* c = thiscpu();
     c->proc = NULL;
 
     for (;;) {
         /* Loop over process table looking for process to run. */
         /* TODO: Lab3 Schedule */
+        acquire_ptable_lock();
+        for (p = ptable.proc; p != ptable.proc + NPROC; p++) {
+            if (p->state == RUNNABLE) {
+                uvm_switch(p->pgdir);
+                p->state = RUNNING;
+                c->proc = p;
+                swtch(&(c->scheduler->context), p->context);
+                c->proc = NULL;
+            }
+        }
+        release_ptable_lock();
     }
 }
 
@@ -69,12 +82,21 @@ static void sched_simple() {
         PANIC("sched: process running");
     }
     /* TODO: Lab3 Schedule */
+    struct proc* p = thiscpu()->proc;
+    swtch(&p->context, thiscpu()->scheduler->context);
 }
 
 /*
  * Allocate an unused entry from ptable.
  * Allocate a new pid for it.
  */
-static struct proc *alloc_pcb_simple() {
+static struct proc* alloc_pcb_simple() {
     /* TODO: Lab3 Schedule */
+    for (int i = 0; i < NPROC; i++) {
+        if (ptable.proc[i].state == UNUSED) {
+            ptable.proc[i].pid = nextpid++;
+            return &(ptable.proc[i]);
+        }
+    }
+    return 0;
 }

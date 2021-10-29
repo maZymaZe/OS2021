@@ -10,7 +10,7 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
     set(aarch64_gdb "gdb")
 else()
     set(aarch64_prefix "aarch64-linux-gnu-")
-    set(aarch64_gdb "gdb-multiarch")
+    set(aarch64_gdb "gdb")
 endif()
 
 set(aarch64_gcc "${aarch64_prefix}gcc")
@@ -46,4 +46,5 @@ add_custom_target(debug
             -ex "set architecture aarch64"
             -ex "file ${kernel_elf}"
             -ex "target remote localhost:1234"
+            -ex "source ~/peda/peda.py"
     DEPENDS kernel)
