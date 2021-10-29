@@ -10,7 +10,7 @@ void init_trap() {
     arch_reset_esr();
 }
 
-void trap_global_handler(Trapframe *frame) {
+void trap_global_handler(Trapframe* frame) {
     u64 esr = arch_get_esr();
     u64 ec = esr >> ESR_EC_SHIFT;
     u64 iss = esr & ESR_ISS_MASK;
@@ -27,17 +27,33 @@ void trap_global_handler(Trapframe *frame) {
         } break;
 
         case ESR_EC_SVC64: {
-			/* TODO: Lab3 Syscall */
-
+            /*
+             * Here, it is a syscall request.
+             * Call `syscall_dispatch` and
+             * record the return value.
+             * Note: this function returns void,
+             * where to record the return value?
+             */
+            /* TODO: Lab3 Syscall */
+            u64 ret = syscall_dispatch(frame);
             // TODO: warn if `iss` is not zero.
             (void)iss;
+            if (iss != 0) {
+                PANIC("iss!=0");
+            }
         } break;
 
         default: {
             // TODO: should exit current process here.
+            exit();
             // exit(1);
         }
     }
+    /*
+     * Hint: For testing, you can set frame->x6 to 0xdead here.
+     * Use GDB to check whether x6 is correct after `trap_return` finishes.
+     * If another register changes to 0xdead, fix the bug in trapframe design.
+     */
 }
 
 NORETURN void trap_error_handler(u64 type) {

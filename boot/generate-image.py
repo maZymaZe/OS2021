@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# TODO: generate filesystem image.
+# TO-DO: generate filesystem image.
 
 from os import system
 from pathlib import Path

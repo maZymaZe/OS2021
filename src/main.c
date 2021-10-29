@@ -32,7 +32,7 @@ NORETURN void main() {
     init_interrupt();
     init_char_device();
     init_console();
-    /* TODO: Lab1 print */
+    /* TO-DO: Lab1 print */
     printf("Hello world!\n");
     init_memory_manager();
     init_virtual_memory();
@@ -41,11 +41,17 @@ NORETURN void main() {
 
     /* TODO: Lab3 uncomment to test interrupt */
     // test_kernel_interrupt();
-    spawn_init_process();
-    enter_scheduler();
+    if (cpuid() == 0) {
+        spawn_init_process();
+        enter_scheduler();
+    } else {
+        enter_scheduler();
+    }
 
     printf("Hello world end!\n");
-    vm_test();
+
+    enter_scheduler();
+    // vm_test();
     printf("bye~\n");
-    /* TODO: Lab1 print */
+    /* TO-DO: Lab1 print */
 }
