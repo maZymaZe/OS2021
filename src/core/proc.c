@@ -26,7 +26,7 @@ extern void initenter();
  */
 static struct proc* alloc_proc() {
     struct proc* p;
-    /* TODO: Lab3 Process */
+    /* TO-DO: Lab3 Process */
     acquire_sched_lock();
     p = alloc_pcb();
     if (p == 0) {
@@ -69,7 +69,7 @@ void spawn_init_process() {
     extern char icode[], eicode[];
     p = alloc_proc();
 
-    /* TODO: Lab3 Process */
+    /* TO-DO: Lab3 Process */
     if (p == 0) {
         PANIC("failed alloc proc");
     }
@@ -97,9 +97,9 @@ void spawn_init_process() {
  * A fork child will first swtch here, and then "return" to user space.
  */
 void forkret() {
-    /* TODO: Lab3 Process */
+    /* TO-DO: Lab3 Process */
     release_sched_lock();
-    /* TODO: Lab3 Process */
+    /* TO-DO: Lab3 Process */
     return;
 }
 
@@ -110,7 +110,7 @@ void forkret() {
  */
 NO_RETURN void exit() {
     struct proc* p = thiscpu()->proc;
-    /* TODO: Lab3 Process */
+    /* TO-DO: Lab3 Process */
     acquire_sched_lock();
     p->state = ZOMBIE;
     sched();

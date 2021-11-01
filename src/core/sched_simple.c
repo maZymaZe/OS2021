@@ -7,7 +7,7 @@
 struct {
     struct proc proc[NPROC];
     SpinLock lock;
-} ptable /* TODO: Lab4 multicore: Add locks where needed in this file or others
+} ptable /* TO-DO: Lab4 multicore: Add locks where needed in this file or others
           */
     ;
 
@@ -55,7 +55,7 @@ static void scheduler_simple() {
 
     for (;;) {
         /* Loop over process table looking for process to run. */
-        /* TODO: Lab3 Schedule */
+        /* TO-DO: Lab3 Schedule */
         acquire_ptable_lock();
         for (p = ptable.proc; p != ptable.proc + NPROC; p++) {
             if (p->state == RUNNABLE) {
@@ -74,14 +74,14 @@ static void scheduler_simple() {
  * `Swtch` to thiscpu->scheduler.
  */
 static void sched_simple() {
-    /* TODO: Your code here. */
+    /* TO-DO: Your code here. */
     if (!holding_spinlock(&ptable.lock)) {
         PANIC("sched: not holding ptable lock");
     }
     if (thiscpu()->proc->state == RUNNING) {
         PANIC("sched: process running");
     }
-    /* TODO: Lab3 Schedule */
+    /* TO-DO: Lab3 Schedule */
     struct proc* p = thiscpu()->proc;
     swtch(&p->context, thiscpu()->scheduler->context);
 }
@@ -91,7 +91,7 @@ static void sched_simple() {
  * Allocate a new pid for it.
  */
 static struct proc* alloc_pcb_simple() {
-    /* TODO: Lab3 Schedule */
+    /* TO-DO: Lab3 Schedule */
     for (int i = 0; i < NPROC; i++) {
         if (ptable.proc[i].state == UNUSED) {
             ptable.proc[i].pid = nextpid++;
