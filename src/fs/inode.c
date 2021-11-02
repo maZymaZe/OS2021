@@ -71,6 +71,7 @@ static usize inode_alloc(OpContext* ctx, InodeType type) {
     }
 
     PANIC("failed to allocate inode on disk");
+    return 0;
 }
 
 // see `inode.h`.
@@ -168,8 +169,8 @@ static void inode_clear(OpContext* ctx, Inode* inode) {
     }
     if (entry->indirect) {
         Block* bp = cache->acquire(entry->indirect);
-        u32* a = (bp->data);
-        for (int i = 0; i < INODE_NUM_INDIRECT; i++) {
+        u32* a = (void*)(bp->data);
+        for (u32 i = 0; i < INODE_NUM_INDIRECT; i++) {
             if (a[i]) {
                 cache->free(ctx, a[i]);
             }
@@ -256,7 +257,7 @@ static usize inode_map(OpContext* ctx,
             addr = entry->indirect = cache->alloc(ctx);
         }
         Block* bp = cache->acquire(addr);
-        u32* a = bp->data;
+        u32* a = (void*)bp->data;
         if ((addr = a[offset]) == 0) {
             addr = a[offset] = cache->alloc(ctx);
             *modified = true;
@@ -327,7 +328,7 @@ static usize inode_lookup(Inode* inode, const char* name, usize* index) {
     u32 off, inum;
     DirEntry de;
     for (off = 0; off < entry->num_bytes; off += sizeof(DirEntry)) {
-        inode_read(inode, &de, off, sizeof(DirEntry));
+        inode_read(inode, (void*)&de, off, sizeof(DirEntry));
         if (de.inode_no == 0)
             continue;
         if (strncmp(de.name, name, FILE_NAME_MAX_LENGTH) == 0) {
@@ -359,13 +360,13 @@ static usize inode_insert(OpContext* ctx,
     u32 off;
     DirEntry de;
     for (off = 0; off < inode->entry.num_bytes; off += sizeof(DirEntry)) {
-        inode_read(inode, &de, off, sizeof(DirEntry));
+        inode_read(inode, (void*)&de, off, sizeof(DirEntry));
         if (de.inode_no == 0)
             break;
     }
     strncpy(de.name, name, FILE_NAME_MAX_LENGTH);
     de.inode_no = inode_no;
-    inode_write(ctx, inode, &de, off, sizeof(DirEntry));
+    inode_write(ctx, inode, (void*)&de, off, sizeof(DirEntry));
     return off;
 }
 
@@ -375,7 +376,7 @@ static void inode_remove(OpContext* ctx, Inode* inode, usize index) {
     assert(entry->type == INODE_DIRECTORY);
     DirEntry de;
     memset(&de, 0, sizeof(de));
-    inode_write(ctx, inode, &de, index, sizeof(DirEntry));
+    inode_write(ctx, inode, (void*)&de, index, sizeof(DirEntry));
     // TODO
 }
 
