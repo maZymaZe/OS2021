@@ -51,7 +51,7 @@ void init_system_per_cpu() {
     init_cpu(&simple_scheduler);
 }
 
-NORETURN void main() {
+void main() {
     /* TO-DO: Lab1 print */
 
     init_system_once();

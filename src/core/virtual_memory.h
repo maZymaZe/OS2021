@@ -19,7 +19,7 @@ typedef struct {
     void (*vm_free)(PTEntriesPtr pgdir);
     int (*uvm_map)(PTEntriesPtr pgdir,
                    void* kernel_address,
-                   size_t size,
+                   uint64_t size,
                    uint64_t physical_address);
 } VMemory;
 
@@ -28,7 +28,7 @@ PTEntriesPtr pgdir_walk(PTEntriesPtr pgdir, void* kernel_address, int alloc);
 void vm_free(PTEntriesPtr pgdir);
 int uvm_map(PTEntriesPtr pgdir,
             void* kernel_address,
-            size_t size,
+            uint64_t size,
             uint64_t physical_address);
 void uvm_switch(PTEntriesPtr pgdir);
 void virtual_memory_init(VMemory*);
@@ -36,10 +36,11 @@ void init_virtual_memory();
 void vm_test();
 
 #define PGSIZE 4096  // bytes per page
-#define PGSHIFT 12   // bits of offset within a page
-                     // shift a physical address to the right place for a PTE.
-                     // #define V2P(a) (((uint64_t)(a)) - KERNBASE)
-                     // #define P2V(a) ((void*)(((char*)(a)) + KERNBASE))
+#define PGSHIFT \
+    12  // bits of offset within a page
+        // shift a physical address to the right place for a PTE.
+        // #define V2P(a) (((uint64_t)(a)) - KERNBASE)
+        // #define P2V(a) ((void*)(((char*)(a)) + KERNBASE))
 
 // extract the three 9-bit page table indices from a virtual address.
 #define PXMASK 0x1FF  // 9 bits

@@ -15,7 +15,7 @@ void init_console() {
     init_uart_char_device(&ctx.device);
 }
 
-#define PANIC_BAR_CHAR   '='
+#define PANIC_BAR_CHAR '='
 #define PANIC_BAR_LENGTH 32
 
 static bool panicked_flag = false;
@@ -32,7 +32,7 @@ static void check_panicked() {
     }
 }
 
-void puts(const char *str) {
+void puts(const char* str) {
     acquire_spinlock(&ctx.lock);
     check_panicked();
 
@@ -46,12 +46,12 @@ void puts(const char *str) {
     release_spinlock(&ctx.lock);
 }
 
-static void _put_char(void *_ctx, char c) {
+static void _put_char(void* _ctx, char c) {
     (void)_ctx;
     ctx.device.put(c);
 }
 
-void vprintf(const char *fmt, va_list arg) {
+void vprintf(const char* fmt, va_list arg) {
     acquire_spinlock(&ctx.lock);
     check_panicked();
 
@@ -60,14 +60,14 @@ void vprintf(const char *fmt, va_list arg) {
     release_spinlock(&ctx.lock);
 }
 
-void printf(const char *fmt, ...) {
+void printf(const char* fmt, ...) {
     va_list arg;
     va_start(arg, fmt);
     vprintf(fmt, arg);
     va_end(arg);
 }
 
-NORETURN void _panic(const char *file, usize line, const char *fmt, ...) {
+void _panic(const char* file, usize line, const char* fmt, ...) {
     acquire_spinlock(&ctx.lock);
     check_panicked();
 

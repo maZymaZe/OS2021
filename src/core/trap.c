@@ -57,6 +57,6 @@ design.
          */
 }
 
-NORETURN void trap_error_handler(u64 type) {
+void trap_error_handler(u64 type) {
     PANIC("unknown trap type: %d", type);
 }

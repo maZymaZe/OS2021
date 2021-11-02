@@ -11,6 +11,7 @@
  * Pay attention to the order of these registers
  * in your trapframe.
  */
+#define uint64_t u64
 typedef struct {
     /* TO-DO: Lab3 Interrupt */
     uint64_t elr_el1;   // pc
