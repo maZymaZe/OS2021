@@ -16,6 +16,9 @@ u64 syscall_dispatch(Trapframe* frame) {
         case SYS_myexecve:
             sys_myexecve((char*)frame->x0);
             break;
+        case SYS_myprint:
+            sys_myprint(frame->x0);
+            break;
         default:
             PANIC("unknown syscallno");
     }

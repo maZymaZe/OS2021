@@ -122,31 +122,74 @@ NO_RETURN void exit() {
  */
 void yield() {
     /* TODO: lab6 container */
+    struct proc* p = thiscpu()->proc;
+    acquire_sched_lock();
+    p->state = RUNNABLE;
+    sched();
 
+    release_sched_lock();
 }
 
 /*
  * Atomically release lock and sleep on chan.
  * Reacquires lock when awakened.
  */
-void sleep(void *chan, SpinLock *lock) {
+void sleep(void* chan, SpinLock* lock) {
     /* TODO: lab6 container */
 
+    struct proc* p = thiscpu()->proc;
+    acquire_sched_lock();
+    release_spinlock(lock);
+    p->chan = chan;
+    p->state = SLEEPING;
+    sched();
+    p->chan = 0;
+    release_sched_lock();
+    acquire_spinlock(lock);
 }
 
 /* Wake up all processes sleeping on chan. */
-void wakeup(void *chan) {
+void wakeup(void* chan) {
     /* TODO: lab6 container */
-
+    proc* p = thiscpu()->scheduler->ptable.proc;
+    for (; p != thiscpu()->scheduler->ptable.proc + NPROC; ++p) {
+        acquire_sched_lock();
+        if (p->chan == chan && p->state == SLEEPING)
+            p->state = RUNNABLE;
+        release_sched_lock();
+    }
 }
 
-/* 
+/*
  * Add process at thiscpu()->container,
  * execute code in src/user/loop.S
  */
 void add_loop_test(int times) {
     for (int i = 0; i < times; i++) {
         /* TODO: lab6 container */
+        struct proc* p;
+        extern char loop_start[], loop_end[];
+        p = alloc_proc();
+        if (p == 0) {
+            PANIC("failed alloc proc");
+        }
+        void* newpgdir = pgdir_init();
+        if (newpgdir == 0) {
+            PANIC("failed to alloc pgdir");
+        }
+        p->pgdir = newpgdir;
+        void* newpage = kalloc();
+        memcpy(newpage, loop_start, loop_end - loop_start);
+        strncpy(p->name, "initproc", sizeof(p->name));
+        uvm_map(newpgdir, 0, PGSIZE, K2P(newpage));
 
+        p->tf->elr_el1 = 0;
+        p->tf->spsr_el1 = 0;
+        p->tf->sp_el0 = PGSIZE;
+        p->tf->x30 = 0;
+
+        p->state = RUNNABLE;
+        p->sz = PGSIZE;
+        release_sched_lock();
     }
 }
