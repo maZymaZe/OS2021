@@ -9,6 +9,7 @@
 
 void forkret();
 extern void trap_return();
+extern void initenter();
 /*
  * Look through the process table for an UNUSED proc.
  * If found, change state to EMBRYO and initialize
@@ -20,15 +21,42 @@ extern void trap_return();
  * Step 4 (TODO): Reserve regions for trapframe and context in the kernel stack.
  * Step 5 (TODO): Set p->tf and p->context to the start of these regions.
  * Step 6 (TODO): Clear trapframe.
- * Step 7 (TODO): Set the context to work with `swtch()`, `forkret()` and `trap_return()`.
+ * Step 7 (TODO): Set the context to work with `swtch()`, `forkret()` and
+ * `trap_return()`.
  */
-static struct proc *alloc_proc() {
-    struct proc *p;
-    /* TODO: Lab3 Process */
+static struct proc* alloc_proc() {
+    struct proc* p;
+    /* TO-DO: Lab3 Process */
+    acquire_sched_lock();
+    p = alloc_pcb();
+    if (p == 0) {
+        release_sched_lock();
+        return 0;
+    }
+    p->state = EMBRYO;
+    void* stp = kalloc();
+    // kalloc cleaned the page
+    if (stp == 0) {
+        p->state = UNUSED;
+        release_sched_lock();
+        return 0;
+    }
+
+    p->kstack = stp + KSTACKSIZE;
+    p->tf = (Trapframe*)(stp + KSTACKSIZE - sizeof(Trapframe));
+
+    p->context =
+        (stp + KSTACKSIZE - sizeof(Trapframe) - sizeof(struct context));
+    p->context->r30 = (uint64_t)initenter;
+
+    return p;
 }
 
 /*
  * Set up first user process(Only used once).
+ * Set trapframe for the new process to run
+ * from the beginning of the user process determined
+ * by uvm_init
  * Step 1: Allocate a configured proc struct by `alloc_proc()`.
  * Step 2 (TODO): Allocate memory for storing the code of init process.
  * Step 3 (TODO): Copy the code (ranging icode to eicode) to memory.
@@ -37,20 +65,42 @@ static struct proc *alloc_proc() {
  * Step 6 (TODO): Set proc->sz.
  */
 void spawn_init_process() {
-    struct proc *p;
+    struct proc* p;
     extern char icode[], eicode[];
     p = alloc_proc();
 
-    /* TODO: Lab3 Process */
+    /* TO-DO: Lab3 Process */
+    if (p == 0) {
+        PANIC("failed alloc proc");
+    }
+    void* newpgdir = pgdir_init();
+    if (newpgdir == 0) {
+        PANIC("failed to alloc pgdir");
+    }
+    p->pgdir = newpgdir;
+    void* newpage = kalloc();
+    memcpy(newpage, icode, eicode - icode);
+    strncpy(p->name, "initproc", sizeof(p->name));
+    uvm_map(newpgdir, 0, PGSIZE, K2P(newpage));
+
+    p->tf->elr_el1 = 0;
+    p->tf->spsr_el1 = 0;
+    p->tf->sp_el0 = PGSIZE;
+    p->tf->x30 = 0;
+
+    p->state = RUNNABLE;
+    p->sz = PGSIZE;
+    release_sched_lock();
 }
 
 /*
  * A fork child will first swtch here, and then "return" to user space.
  */
 void forkret() {
-    /* TODO: Lab3 Process */
-
+    /* TO-DO: Lab3 Process */
     release_sched_lock();
+    /* TO-DO: Lab3 Process */
+    return;
 }
 
 /*
@@ -59,8 +109,11 @@ void forkret() {
  * until its parent calls wait() to find out it exited.
  */
 NO_RETURN void exit() {
-    struct proc *p = thiscpu()->proc;
-    /* TODO: Lab3 Process */
+    struct proc* p = thiscpu()->proc;
+    /* TO-DO: Lab3 Process */
+    acquire_sched_lock();
+    p->state = ZOMBIE;
+    sched();
 }
 
 /*
@@ -69,31 +122,74 @@ NO_RETURN void exit() {
  */
 void yield() {
     /* TODO: lab6 container */
+    struct proc* p = thiscpu()->proc;
+    acquire_sched_lock();
+    p->state = RUNNABLE;
+    sched();
 
+    release_sched_lock();
 }
 
 /*
  * Atomically release lock and sleep on chan.
  * Reacquires lock when awakened.
  */
-void sleep(void *chan, SpinLock *lock) {
+void sleep(void* chan, SpinLock* lock) {
     /* TODO: lab6 container */
 
+    struct proc* p = thiscpu()->proc;
+    acquire_sched_lock();
+    release_spinlock(lock);
+    p->chan = chan;
+    p->state = SLEEPING;
+    sched();
+    p->chan = 0;
+    release_sched_lock();
+    acquire_spinlock(lock);
 }
 
 /* Wake up all processes sleeping on chan. */
-void wakeup(void *chan) {
+void wakeup(void* chan) {
     /* TODO: lab6 container */
-
+    proc* p = thiscpu()->scheduler->ptable.proc;
+    for (; p != thiscpu()->scheduler->ptable.proc + NPROC; ++p) {
+        acquire_sched_lock();
+        if (p->chan == chan && p->state == SLEEPING)
+            p->state = RUNNABLE;
+        release_sched_lock();
+    }
 }
 
-/* 
+/*
  * Add process at thiscpu()->container,
  * execute code in src/user/loop.S
  */
 void add_loop_test(int times) {
     for (int i = 0; i < times; i++) {
         /* TODO: lab6 container */
+        struct proc* p;
+        extern char loop_start[], loop_end[];
+        p = alloc_proc();
+        if (p == 0) {
+            PANIC("failed alloc proc");
+        }
+        void* newpgdir = pgdir_init();
+        if (newpgdir == 0) {
+            PANIC("failed to alloc pgdir");
+        }
+        p->pgdir = newpgdir;
+        void* newpage = kalloc();
+        memcpy(newpage, loop_start, loop_end - loop_start);
+        strncpy(p->name, "initproc", sizeof(p->name));
+        uvm_map(newpgdir, 0, PGSIZE, K2P(newpage));
 
+        p->tf->elr_el1 = 0;
+        p->tf->spsr_el1 = 0;
+        p->tf->sp_el0 = PGSIZE;
+        p->tf->x30 = 0;
+
+        p->state = RUNNABLE;
+        p->sz = PGSIZE;
+        release_sched_lock();
     }
 }

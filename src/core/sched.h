@@ -22,7 +22,7 @@ struct scheduler;
 struct sched_op {
     void (*init)();
     void (*scheduler)();
-    struct proc *(*alloc_pcb)();
+    struct proc* (*alloc_pcb)();
     void (*sched)();
     void (*acquire_lock)();
     void (*release_lock)();
@@ -30,8 +30,8 @@ struct sched_op {
 
 struct scheduler {
     // struct sched_obj sched;
-    struct sched_op *op;
-    struct context *context;
+    struct sched_op* op;
+    struct context* context;
     struct proc ptable[NPROC];
     SpinLock lock;
 };
@@ -39,13 +39,13 @@ struct scheduler {
 extern struct scheduler simple_scheduler;
 
 struct cpu {
-    struct scheduler *scheduler;
-    struct proc *proc;
+    struct scheduler* scheduler;
+    struct proc* proc;
 };
 #define NCPU 4 /* maximum number of CPUs */
 extern struct cpu cpus[NCPU];
 
-static INLINE struct cpu *thiscpu() {
+static inline struct cpu* thiscpu() {
     return &cpus[cpuid()];
 }
 
@@ -54,7 +54,7 @@ static INLINE void init_sched() {
     simple_scheduler.op->init();
 }
 
-static INLINE void init_cpu(struct scheduler *scheduler) {
+static inline void init_cpu(struct scheduler* scheduler) {
     thiscpu()->scheduler = scheduler;
     // init_sched();
 }
@@ -68,7 +68,7 @@ static INLINE void sched() {
     thiscpu()->scheduler->op->sched();
 }
 
-static INLINE struct proc *alloc_pcb() {
+static inline struct proc* alloc_pcb() {
     assert(thiscpu()->scheduler != NULL);
     assert(thiscpu()->scheduler->op != NULL);
     assert(thiscpu()->scheduler->op->alloc_pcb != NULL);
@@ -87,12 +87,12 @@ static INLINE void release_sched_lock() {
 struct scheduler;
 struct sched_op {
     void (*init)();
-    void (*scheduler)(struct scheduler *this);
-    struct proc *(*alloc_pcb)(struct scheduler *this);
-    void (*sched)(struct scheduler *this);
-    void (*acquire_lock)(struct scheduler *this);
-    void (*release_lock)(struct scheduler *this);
-    struct context *(*get_context)(struct scheduler *this);
+    void (*scheduler)(struct scheduler* this);
+    struct proc* (*alloc_pcb)(struct scheduler* this);
+    void (*sched)(struct scheduler* this);
+    void (*acquire_lock)(struct scheduler* this);
+    void (*release_lock)(struct scheduler* this);
+    struct context* (*get_context)(struct scheduler* this);
 };
 extern struct sched_op simple_op;
 
@@ -100,24 +100,24 @@ extern struct sched_op simple_op;
 
 struct scheduler {
     // struct sched_obj sched;
-    struct sched_op *op;
-    struct context *context[NCPU];
+    struct sched_op* op;
+    struct context* context[NCPU];
     struct {
         struct proc proc[NPROC];
         SpinLock lock;
     } ptable;
     int pid;
-    struct scheduler *parent;
-    struct container *cont;
+    struct scheduler* parent;
+    struct container* cont;
 };
 
 struct cpu {
-    struct scheduler *scheduler;
-    struct proc *proc;
+    struct scheduler* scheduler;
+    struct proc* proc;
 };
 extern struct cpu cpus[NCPU];
 
-static INLINE struct cpu *thiscpu() {
+static INLINE struct cpu* thiscpu() {
     return &cpus[cpuid()];
 }
 
@@ -126,7 +126,7 @@ static INLINE void init_sched() {
     // simple_scheduler.op->init();
 }
 
-static INLINE void init_cpu(struct scheduler *scheduler) {
+static INLINE void init_cpu(struct scheduler* scheduler) {
     thiscpu()->scheduler = scheduler;
     //     init_sched();
 }
@@ -142,7 +142,7 @@ static INLINE void sched() {
     thiscpu()->scheduler->op->sched(thiscpu()->scheduler);
 }
 
-static INLINE struct proc *alloc_pcb() {
+static INLINE struct proc* alloc_pcb() {
     assert(thiscpu()->scheduler != NULL);
     assert(thiscpu()->scheduler->op != NULL);
     assert(thiscpu()->scheduler->op->alloc_pcb != NULL);

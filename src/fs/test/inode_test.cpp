@@ -29,11 +29,13 @@ int test_alloc() {
     mock.end_op(ctx);
 
     mock.fence();
+
     assert_eq(mock.count_inodes(), 2);
 
-    auto *p = inodes.get(ino);
+    auto* p = inodes.get(ino);
 
     inodes.lock(p);
+    // printf("hello\n");
     inodes.unlock(p);
 
     mock.begin_op(ctx);
@@ -49,7 +51,7 @@ int test_alloc() {
 }
 
 int test_sync() {
-    auto *p = inodes.get(1);
+    auto* p = inodes.get(1);
 
     inodes.lock(p);
     assert_eq(p->entry.type, INODE_DIRECTORY);
@@ -66,7 +68,7 @@ int test_sync() {
     mock.end_op(ctx);
 
     mock.fence();
-    auto *q = mock.inspect(1);
+    auto* q = mock.inspect(1);
     assert_eq(q->type, INODE_DIRECTORY);
     assert_eq(q->major, 0x19);
     assert_eq(q->minor, 0x26);
@@ -76,7 +78,7 @@ int test_sync() {
 }
 
 int test_touch() {
-    auto *p = inodes.get(1);
+    auto* p = inodes.get(1);
     inodes.lock(p);
 
     for (usize i = 2; i < mock.num_inodes; i++) {
@@ -84,7 +86,7 @@ int test_touch() {
         usize ino = inodes.alloc(ctx, INODE_REGULAR);
         inodes.insert(ctx, p, std::to_string(i).data(), ino);
 
-        auto *q = inodes.get(ino);
+        auto* q = inodes.get(ino);
         inodes.lock(q);
         assert_eq(q->entry.type, INODE_REGULAR);
         assert_eq(q->entry.major, 0);
@@ -97,7 +99,9 @@ int test_touch() {
         }
 
         q->entry.num_links++;
+
         inodes.sync(ctx, q, true);
+
         inodes.unlock(q);
         inodes.put(ctx, q);
 
@@ -116,7 +120,7 @@ int test_touch() {
         assert_ne(index, 10086);
         inodes.remove(ctx, p, index);
 
-        auto *q = inodes.get(i);
+        auto* q = inodes.get(i);
         inodes.lock(q);
         q->entry.num_links = 0;
         inodes.sync(ctx, q, true);
@@ -132,7 +136,7 @@ int test_touch() {
 
     mock.begin_op(ctx);
     usize ino = inodes.alloc(ctx, INODE_DIRECTORY);
-    auto *q = inodes.get(ino);
+    auto* q = inodes.get(ino);
     inodes.lock(q);
     assert_eq(q->entry.type, INODE_DIRECTORY);
     inodes.unlock(q);
@@ -176,9 +180,9 @@ int test_share() {
     mock.fence();
     assert_eq(mock.count_inodes(), 2);
 
-    auto *p = inodes.get(ino);
-    auto *q = inodes.share(p);
-    auto *r = inodes.get(ino);
+    auto* p = inodes.get(ino);
+    auto* q = inodes.share(p);
+    auto* r = inodes.get(ino);
 
     assert_eq(r->rc.count, 3);
 
@@ -210,7 +214,7 @@ int test_small_file() {
     mock.end_op(ctx);
 
     u8 buf[1];
-    auto *p = inodes.get(ino);
+    auto* p = inodes.get(ino);
     inodes.lock(p);
 
     buf[0] = 0xcc;
@@ -223,7 +227,7 @@ int test_small_file() {
     mock.end_op(ctx);
 
     mock.fence();
-    auto *q = mock.inspect(ino);
+    auto* q = mock.inspect(ino);
     assert_eq(q->indirect, 0);
     assert_ne(q->addrs[0], 0);
     assert_eq(q->addrs[1], 0);
@@ -274,7 +278,7 @@ int test_large_file() {
         copy[i] = buf[i] = gen() & 0xff;
     }
 
-    auto *p = inodes.get(ino);
+    auto* p = inodes.get(ino);
 
     inodes.lock(p);
     for (usize i = 0, n = 0; i < max_size; i += n) {
@@ -282,7 +286,7 @@ int test_large_file() {
 
         mock.begin_op(ctx);
         inodes.write(ctx, p, buf + i, i, n);
-        auto *q = mock.inspect(ino);
+        auto* q = mock.inspect(ino);
         assert_eq(q->num_bytes, i);
         mock.end_op(ctx);
 
@@ -324,7 +328,7 @@ int test_large_file() {
     inodes.unlock(p);
 
     mock.fence();
-    auto *q = mock.inspect(ino);
+    auto* q = mock.inspect(ino);
     assert_eq(q->num_bytes, max_size);
 
     for (usize i = 0; i < max_size; i++) {
@@ -366,7 +370,7 @@ int test_dir() {
     mock.fence();
     assert_eq(mock.count_inodes(), 5);
 
-    Inode *p[5];
+    Inode* p[5];
     for (usize i = 0; i < 5; i++) {
         p[i] = inodes.get(ino[i]);
         inodes.lock(p[i]);
@@ -377,7 +381,7 @@ int test_dir() {
     p[1]->entry.num_links++;
     inodes.sync(ctx, p[1], true);
 
-    auto *q = mock.inspect(ino[0]);
+    auto* q = mock.inspect(ino[0]);
     assert_eq(q->addrs[0], 0);
     assert_eq(inodes.lookup(p[0], "fudan", NULL), ino[1]);
     mock.end_op(ctx);
