@@ -6,6 +6,7 @@
 #include <core/proc.h>
 #include <core/sched.h>
 #include <core/virtual_memory.h>
+#include <driver/sd.h>
 
 void forkret();
 extern void trap_return();
@@ -27,10 +28,8 @@ extern void initenter();
 static struct proc* alloc_proc() {
     struct proc* p;
     /* TO-DO: Lab3 Process */
-    acquire_sched_lock();
     p = alloc_pcb();
     if (p == 0) {
-        release_sched_lock();
         return 0;
     }
     p->state = EMBRYO;
@@ -38,7 +37,6 @@ static struct proc* alloc_proc() {
     // kalloc cleaned the page
     if (stp == 0) {
         p->state = UNUSED;
-        release_sched_lock();
         return 0;
     }
 
@@ -90,16 +88,47 @@ void spawn_init_process() {
 
     p->state = RUNNABLE;
     p->sz = PGSIZE;
-    release_sched_lock();
+}
+void spawn_init_process_sd() {
+    struct proc* p;
+    extern char ispin[], eicode[];
+    p = alloc_proc();
+
+    /* TO-DO: Lab3 Process */
+    if (p == 0) {
+        PANIC("failed alloc proc");
+    }
+    void* newpgdir = pgdir_init();
+    if (newpgdir == 0) {
+        PANIC("failed to alloc pgdir");
+    }
+    p->pgdir = newpgdir;
+    void* newpage = kalloc();
+    memcpy(newpage, ispin, eicode - ispin);
+    strncpy(p->name, "sdproc", sizeof(p->name));
+    uvm_map(newpgdir, 0, PGSIZE, K2P(newpage));
+
+    p->tf->elr_el1 = 0;
+    p->tf->spsr_el1 = 0;
+    p->tf->sp_el0 = PGSIZE;
+    p->tf->x30 = 0;
+
+    p->state = RUNNABLE;
+    p->sz = PGSIZE;
 }
 
 /*
  * A fork child will first swtch here, and then "return" to user space.
  */
+int sdtest = 0;
 void forkret() {
     /* TO-DO: Lab3 Process */
     release_sched_lock();
     /* TO-DO: Lab3 Process */
+    if (sdtest) {
+        sd_test();
+    }
+    sdtest = 1;
     return;
 }
 
@@ -109,9 +138,9 @@ void forkret() {
  * until its parent calls wait() to find out it exited.
  */
 NO_RETURN void exit() {
-    struct proc* p = thiscpu()->proc;
     /* TO-DO: Lab3 Process */
     acquire_sched_lock();
+    struct proc* p = thiscpu()->proc;
     p->state = ZOMBIE;
     sched();
 }
@@ -122,11 +151,10 @@ NO_RETURN void exit() {
  */
 void yield() {
     /* TODO: lab6 container */
-    struct proc* p = thiscpu()->proc;
     acquire_sched_lock();
+    struct proc* p = thiscpu()->proc;
     p->state = RUNNABLE;
     sched();
-
     release_sched_lock();
 }
 
@@ -136,10 +164,10 @@ void yield() {
  */
 void sleep(void* chan, SpinLock* lock) {
     /* TODO: lab6 container */
-
-    struct proc* p = thiscpu()->proc;
     acquire_sched_lock();
     release_spinlock(lock);
+
+    struct proc* p = thiscpu()->proc;
     p->chan = chan;
     p->state = SLEEPING;
     sched();
@@ -151,13 +179,16 @@ void sleep(void* chan, SpinLock* lock) {
 /* Wake up all processes sleeping on chan. */
 void wakeup(void* chan) {
     /* TODO: lab6 container */
-    proc* p = thiscpu()->scheduler->ptable.proc;
-    for (; p != thiscpu()->scheduler->ptable.proc + NPROC; ++p) {
-        acquire_sched_lock();
-        if (p->chan == chan && p->state == SLEEPING)
+    acquire_sched_lock();
+    struct proc* cp = thiscpu()->proc;
+    struct proc* p;
+    for (int i = 0; i < NPROC; i++) {
+        p = &thiscpu()->scheduler->ptable.proc[i];
+        if (p != cp && p->state == SLEEPING && p->chan == chan) {
             p->state = RUNNABLE;
-        release_sched_lock();
+        }
     }
+    release_sched_lock();
 }
 
 /*
@@ -190,6 +221,5 @@ void add_loop_test(int times) {
 
         p->state = RUNNABLE;
         p->sz = PGSIZE;
-        release_sched_lock();
     }
 }

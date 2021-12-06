@@ -20,6 +20,9 @@ u64 syscall_dispatch(Trapframe* frame) {
         case SYS_myprint:
             sys_myprint(frame->x0);
             break;
+        case SYS_myyield:
+            yield();
+            break;
         default:
             PANIC("unknown syscallno");
     }

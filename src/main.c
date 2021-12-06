@@ -10,6 +10,7 @@
 #include <core/virtual_memory.h>
 #include <driver/clock.h>
 #include <driver/interrupt.h>
+#include <driver/sd.h>
 
 struct cpu cpus[NCPU];
 
@@ -34,6 +35,7 @@ void init_system_once() {
     vm_test();
     arena_test();
     init_container();
+    sd_init();
 
     release_spinlock(&init_lock);
 }
@@ -61,12 +63,12 @@ void main() {
     wait_spinlock(&init_lock);
 
     init_system_per_cpu();
-
     /* TO-DO: Lab3 uncomment to test interrupt */
     // test_kernel_interrupt();
     if (cpuid() == 0) {
-        spawn_init_process();
-        container_test_init();
+        spawn_init_process_sd();
+        spawn_init_process_sd();
+        // container_test_init();
         enter_scheduler();
     } else {
         enter_scheduler();

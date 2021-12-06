@@ -20,6 +20,7 @@ void trap_global_handler(Trapframe* frame) {
     u64 iss = esr & ESR_ISS_MASK;
     u64 ir = esr & ESR_IR_MASK;
 
+    arch_reset_esr();
     // u32 src = get32(IRQ_SRC_CORE(cpuid()));
 
     switch (ec) {

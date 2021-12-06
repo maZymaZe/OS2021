@@ -514,8 +514,11 @@ static int sdBaseClock;
 
 // struct buf sdque;
 struct SpinLock sdlock;
+struct SpinLock qlock;
 struct bufQueue sdque;
 struct buf mbr;
+
+u32 lba2, sz2;
 
 void sd_init() {
     /*
@@ -523,7 +526,9 @@ void sd_init() {
      * Remember to call sd_init() at somewhere.
      */
     /* TODO: Lab7 driver. */
+    sdInit();
     init_spinlock(&sdlock, "sdlock");
+    init_spinlock(&qlock, "qlock");
     initBufQueue(&sdque);
     /*
      * Read and parse 1st block (MBR) and collect whatever
@@ -533,12 +538,19 @@ void sd_init() {
      * sdWaitForInterrupt for clearing certain interrupt.
      */
 
-    // acquire_spinlock(&sdlock);
-    // sd_start(&mbr);
-    // release_spinlock(&sdlock);
-    // push(&sdque, &mbr);
-    // sdWaitForInterrupt(INT_WRITE_RDY);
-
+    sd_start(&mbr);
+    sdWaitForInterrupt(INT_READ_RDY);
+    int done = 0;
+    u32* ip = (u32*)mbr.data;
+    while (done < 128)
+        ip[done++] = *EMMC_DATA;
+    sdWaitForInterrupt(INT_DATA_DONE);
+    disb();
+    lba2 = *((u32*)(mbr.data + 470));
+    sz2 = *((u32*)(mbr.data + 474));
+    printf("lab2: %x\nsz2: %x\n", lba2, sz2);
+    set_interrupt_handler(IRQ_SDIO, sd_intr);
+    set_interrupt_handler(IRQ_ARASANSDIO, sd_intr);
     /* TODO: Lab7 driver. */
 }
 
@@ -596,7 +608,6 @@ static void sd_start(struct buf* b) {
 void sd_intr() {
     /*
      * Pay attention to whether there is any element in the buflist.
-
      * Understand the meanings of EMMC_INTERRUPT, EMMC_DATA, INT_DATA_DONE,
      * INT_READ_RDY, B_DIRTY, B_VALID and some other flags.
      *
@@ -613,6 +624,41 @@ void sd_intr() {
      */
 
     /* TODO: Lab7 driver. */
+    acquire_spinlock(&qlock);
+    if (!empty(&sdque)) {
+        int intr = *EMMC_INTERRUPT;
+        *EMMC_INTERRUPT = intr;
+        struct buf* bid = front(&sdque);
+
+        disb();
+        if (intr != INT_READ_RDY && intr != INT_DATA_DONE) {
+            PANIC("...");
+        }
+        int is_write = (bid->flags == B_DIRTY);
+        if ((is_write != 0 && intr != INT_DATA_DONE) ||
+            (is_write == 0 && intr != INT_READ_RDY)) {
+            PANIC(",,,");
+        }
+        if (!is_write) {
+            int done = 0;
+            u32* ip = (u32*)bid->data;
+            while (done < 128)
+                ip[done++] = *EMMC_DATA;
+            sdWaitForInterrupt(INT_DATA_DONE);
+        }
+
+        bid->flags = B_VALID;
+        wakeup(bid);
+        pop(&sdque);
+        if (!empty(&sdque)) {
+            acquire_spinlock(&sdlock);
+            sd_start(front(&sdque));
+            release_spinlock(&sdque);
+        }
+        release_spinlock(&qlock);
+    } else {
+        release_spinlock(&qlock);
+    }
 }
 
 /*
@@ -632,17 +678,21 @@ void sdrw(struct buf* b) {
 
     /* TODO: Lab7 driver. */
 
+    acquire_spinlock(&qlock);
     if (empty(&sdque)) {
-        sd_start(b);
+        push(&sdque, b);
+        acquire_spinlock(&sdlock);
+        sd_start(front(&sdque));
+        release_spinlock(&sdlock);
     } else {
         push(&sdque, b);
     }
-    int preflag = b->flags;
-    sleep(b, &sdlock);
     while (true) {
-        if (b->flags != preflag)
+        if (b->flags == B_VALID)
             break;
+        sleep(b, &qlock);
     }
+    release_spinlock(&qlock);
 }
 
 /* SD card test and benchmark. */
@@ -661,7 +711,6 @@ void sd_test() {
         // Backup.
         b[0].flags = 0;
         b[0].blockno = (u32)i;
-
         sdrw(&b[0]);
         // Write some value.
         b[i].flags = B_DIRTY;

@@ -102,13 +102,16 @@ static void sched_simple(struct scheduler* this) {
 }
 
 static struct proc* alloc_pcb_simple(struct scheduler* this) {
+    acquire_sched_lock();
     proc* p = this->ptable.proc;
     for (int i = 0; i < NPROC; i++) {
         if (p[i].state == UNUSED) {
             p[i].pid = (int)(alloc_resource(this->cont, &(p[i]), PID));
+            release_sched_lock();
             return &(p[i]);
         }
     }
+    release_sched_lock();
     return 0;
 }
 

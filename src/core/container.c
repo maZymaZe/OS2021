@@ -43,17 +43,13 @@ struct container* alloc_container(bool root) {
     if (root)
         return c;
 
-    acquire_sched_lock();
     c->p = alloc_pcb();
-
     if (c->p == 0) {
-        release_sched_lock();
         return 0;
     }
     c->p->state = EMBRYO;
     c->p->is_scheduler = true;
     c->p->cont = c;
-    release_sched_lock();
 
     void* sp;
     for (int i = 0; i < NCPU; i++) {
