@@ -548,7 +548,7 @@ void sd_init() {
     disb();
     lba2 = *((u32*)(mbr.data + 470));
     sz2 = *((u32*)(mbr.data + 474));
-    printf("lab2: %x\nsz2: %x\n", lba2, sz2);
+    printf("lba2: %x\nsz2: %x\n", lba2, sz2);
     set_interrupt_handler(IRQ_SDIO, sd_intr);
     set_interrupt_handler(IRQ_ARASANSDIO, sd_intr);
     /* TODO: Lab7 driver. */
