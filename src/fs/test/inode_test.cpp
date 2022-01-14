@@ -26,9 +26,10 @@ void test_alloc() {
     mock.end_op(ctx);
     assert_eq(mock.count_inodes(), 2);
 
-    auto *p = inodes.get(ino);
+    auto* p = inodes.get(ino);
 
     inodes.lock(p);
+    // printf("hello\n");
     inodes.unlock(p);
 
     mock.begin_op(ctx);
@@ -40,7 +41,7 @@ void test_alloc() {
 }
 
 void test_sync() {
-    auto *p = inodes.get(1);
+    auto* p = inodes.get(1);
 
     inodes.lock(p);
     assert_eq(p->entry.type, INODE_DIRECTORY);
@@ -56,7 +57,7 @@ void test_sync() {
     inodes.put(ctx, p);
     mock.end_op(ctx);
 
-    auto *q = mock.inspect(1);
+    auto* q = mock.inspect(1);
     assert_eq(q->type, INODE_DIRECTORY);
     assert_eq(q->major, 0x19);
     assert_eq(q->minor, 0x26);
@@ -64,7 +65,7 @@ void test_sync() {
 }
 
 void test_touch() {
-    auto *p = inodes.get(1);
+    auto* p = inodes.get(1);
     inodes.lock(p);
 
     for (usize i = 2; i < mock.num_inodes; i++) {
@@ -72,7 +73,7 @@ void test_touch() {
         usize ino = inodes.alloc(ctx, INODE_REGULAR);
         inodes.insert(ctx, p, std::to_string(i).data(), ino);
 
-        auto *q = inodes.get(ino);
+        auto* q = inodes.get(ino);
         inodes.lock(q);
         assert_eq(q->entry.type, INODE_REGULAR);
         assert_eq(q->entry.major, 0);
@@ -85,7 +86,9 @@ void test_touch() {
         }
 
         q->entry.num_links++;
+
         inodes.sync(ctx, q, true);
+
         inodes.unlock(q);
         inodes.put(ctx, q);
 
@@ -102,7 +105,7 @@ void test_touch() {
         assert_ne(index, 10086);
         inodes.remove(ctx, p, index);
 
-        auto *q = inodes.get(i);
+        auto* q = inodes.get(i);
         inodes.lock(q);
         q->entry.num_links = 0;
         inodes.sync(ctx, q, true);
@@ -116,7 +119,7 @@ void test_touch() {
 
     mock.begin_op(ctx);
     usize ino = inodes.alloc(ctx, INODE_DIRECTORY);
-    auto *q = inodes.get(ino);
+    auto* q = inodes.get(ino);
     inodes.lock(q);
     assert_eq(q->entry.type, INODE_DIRECTORY);
     inodes.unlock(q);
@@ -151,9 +154,9 @@ void test_share() {
     mock.end_op(ctx);
     assert_eq(mock.count_inodes(), 2);
 
-    auto *p = inodes.get(ino);
-    auto *q = inodes.share(p);
-    auto *r = inodes.get(ino);
+    auto* p = inodes.get(ino);
+    auto* q = inodes.share(p);
+    auto* r = inodes.get(ino);
 
     assert_eq(r->rc.count, 3);
 
@@ -179,7 +182,7 @@ void test_small_file() {
     mock.end_op(ctx);
 
     u8 buf[1];
-    auto *p = inodes.get(ino);
+    auto* p = inodes.get(ino);
     inodes.lock(p);
 
     buf[0] = 0xcc;
@@ -191,7 +194,7 @@ void test_small_file() {
     assert_eq(mock.count_blocks(), 0);
     mock.end_op(ctx);
 
-    auto *q = mock.inspect(ino);
+    auto* q = mock.inspect(ino);
     assert_eq(q->indirect, 0);
     assert_ne(q->addrs[0], 0);
     assert_eq(q->addrs[1], 0);
@@ -237,7 +240,7 @@ void test_large_file() {
         copy[i] = buf[i] = gen() & 0xff;
     }
 
-    auto *p = inodes.get(ino);
+    auto* p = inodes.get(ino);
 
     inodes.lock(p);
     for (usize i = 0, n = 0; i < max_size; i += n) {
@@ -245,7 +248,7 @@ void test_large_file() {
 
         mock.begin_op(ctx);
         inodes.write(ctx, p, buf + i, i, n);
-        auto *q = mock.inspect(ino);
+        auto* q = mock.inspect(ino);
         assert_eq(q->num_bytes, i);
         mock.end_op(ctx);
         assert_eq(q->num_bytes, i + n);
@@ -282,7 +285,7 @@ void test_large_file() {
     mock.end_op(ctx);
     inodes.unlock(p);
 
-    auto *q = mock.inspect(ino);
+    auto* q = mock.inspect(ino);
     assert_eq(q->num_bytes, max_size);
 
     for (usize i = 0; i < max_size; i++) {
@@ -319,7 +322,7 @@ void test_dir() {
     mock.end_op(ctx);
     assert_eq(mock.count_inodes(), 5);
 
-    Inode *p[5];
+    Inode* p[5];
     for (usize i = 0; i < 5; i++) {
         p[i] = inodes.get(ino[i]);
         inodes.lock(p[i]);
@@ -330,7 +333,7 @@ void test_dir() {
     p[1]->entry.num_links++;
     inodes.sync(ctx, p[1], true);
 
-    auto *q = mock.inspect(ino[0]);
+    auto* q = mock.inspect(ino[0]);
     assert_eq(q->addrs[0], 0);
     assert_eq(inodes.lookup(p[0], "fudan", NULL), ino[1]);
     mock.end_op(ctx);
