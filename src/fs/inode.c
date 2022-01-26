@@ -447,8 +447,39 @@ static Inode* namex(const char* path,
                     char* name,
                     OpContext* ctx) {
     /* TODO: Lab9 Shell */
-
-    return 0;
+    Inode *ip, *nx;
+    if (*path == '/') {
+        ip = inode_get(ROOT_INODE_NO);
+    } else {
+        ip = inode_share((thiscpu())->proc->cwd);
+    }
+    while ((path = skipelem(path, name)) != 0) {
+        inode_lock(ip);
+        if (ip->entry.type != INODE_DIRECTORY) {
+            inode_unlock(ip);
+            inode_put(ctx, ip);
+            return 0;
+        }
+        if (nameiparent && *path == '\0') {
+            inode_unlock(ip);
+            return ip;
+        }
+        // FIXME:call iget here
+        nx = inode_get(inode_lookup(ip, name, 0));
+        if (nx == 0) {
+            inode_unlock(ip);
+            inode_put(ctx, ip);
+            return 0;
+        }
+        inode_unlock(ip);
+        inode_put(ctx, ip);
+        ip = nx;
+    }
+    if (nameiparent) {
+        inode_put(ctx, ip);
+        return 0;
+    }
+    return ip;
 }
 
 Inode* namei(const char* path, OpContext* ctx) {
@@ -467,7 +498,9 @@ Inode* nameiparent(const char* path, char* name, OpContext* ctx) {
 void stati(Inode* ip, struct stat* st) {
     // TODO: Lab9 Shell
     st->st_dev = 1;
-
+    st->st_ino = ip->inode_no;
+    st->st_nlink = ip->entry.num_links;
+    st->st_size = ip->entry.num_bytes;
     switch (ip->entry.type) {
         case INODE_REGULAR:
             st->st_mode = S_IFREG;
