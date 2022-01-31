@@ -59,7 +59,7 @@ struct container* alloc_container(bool root) {
         }
         sp = pg + PGSIZE - sizeof(struct context);
         c->scheduler.context[i] = sp;
-        c->scheduler.context[i]->r30 = container_entry;
+        c->scheduler.context[i]->r30 = (u64)container_entry;
     }
     return c;
 }
@@ -107,7 +107,7 @@ void* alloc_resource(struct container* this,
         alloc_resource(this->parent, p, PID);
     }
     release_spinlock(&this->lock);
-    return this->scheduler.pid;
+    return (void*)(this->scheduler.pid);
 }
 
 /*

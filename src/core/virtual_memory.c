@@ -216,7 +216,7 @@ int my_uvm_dealloc(PTEntriesPtr pgdir, usize base, usize oldsz, usize newsz) {
 
 // Clear PTE_U on a page. Used to create an inaccessible page beneath
 // the user stack (to trap stack underflow).
-void clearpteu(PTEntriesPtr* pgdir, char* uva) {
+void clearpteu(PTEntriesPtr pgdir, char* uva) {
     u64* pte;
 
     pte = pgdir_walk(pgdir, uva, 0);

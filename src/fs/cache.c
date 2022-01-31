@@ -170,13 +170,14 @@ static void cache_begin_op(OpContext* ctx) {
     while (1) {
         if (log.committing) {
             sleep(&log, &log.lock);
-        } else if (header.num_blocks + log.mu + OP_MAX_NUM_BLOCKS > log.mx) {
+        } else if ((int)header.num_blocks + log.mu + OP_MAX_NUM_BLOCKS >
+                   log.mx) {
             sleep(&log, &log.lock);
         } else {
             log.outstanding++;
             log.mu += OP_MAX_NUM_BLOCKS;
             ctx->rm = OP_MAX_NUM_BLOCKS;
-            ctx->ts = log.outstanding;
+            ctx->ts = (usize)log.outstanding;
             release_spinlock(&log.lock);
             break;
         }
@@ -188,7 +189,7 @@ static void cache_sync(OpContext* ctx, Block* block) {
     if (ctx) {
         // TODO
         acquire_spinlock(&log.lock);
-        if (header.num_blocks >= log.mx) {
+        if ((int)header.num_blocks >= log.mx) {
             PANIC("too big a transaction");
         }
         if (log.outstanding < 1)
@@ -239,7 +240,7 @@ static void cache_end_op(OpContext* ctx) {
     int do_commit = 0;
     acquire_spinlock(&log.lock);
     log.outstanding--;
-    log.mu -= ctx->rm;
+    log.mu -= (int)ctx->rm;
     if (log.committing)
         PANIC("log committing");
     if (log.outstanding == 0)
@@ -261,7 +262,7 @@ static void cache_end_op(OpContext* ctx) {
 
 // see `cache.h`.
 // hint: you can use `cache_acquire`/`cache_sync` to read/write blocks.
-usize BBLOCK(usize b, SuperBlock* sb) {
+usize BBLOCK(usize b, const SuperBlock* sb) {
     return b / BIT_PER_BLOCK + sb->bitmap_start;
 }
 void bzero(OpContext* ctx, u32 block_no) {

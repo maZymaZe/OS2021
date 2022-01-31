@@ -18,17 +18,17 @@
 // and the pages from va to va+sz must already be mapped.
 // Returns 0 on success, -1 on failure.
 static int loadseg(PTEntriesPtr pgdir, u64 va, Inode* ip, u32 offset, u32 sz) {
-    int i, n;
-    u64 pa;
+    int n;
+    u64 pa, i;
     for (i = 0; i < sz; i += PGSIZE) {
-        pa = uva2ka(pgdir, va + i);
+        pa = (u64)uva2ka(pgdir, (char*)(va + i));
         if (pa == 0)
             PANIC("addr not exist");
         if (sz - i < PGSIZE)
-            n = sz - i;
+            n = (int)(sz - i);
         else
             n = PGSIZE;
-        if (inodes.read(ip, pa, offset + i, n) != n)
+        if (inodes.read(ip, (u8*)pa, offset + i, (usize)n) != (usize)n)
             return -1;
     }
     return 0;
@@ -36,6 +36,8 @@ static int loadseg(PTEntriesPtr pgdir, u64 va, Inode* ip, u32 offset, u32 sz) {
 
 int execve(const char* path, char* const argv[], char* const envp[]) {
     /* TODO: Lab9 Shell */
+    if (envp) {
+    }
     OpContext ctx;
     bcache.begin_op(&ctx);
     Inode* ip = namei(path, &ctx);
@@ -44,11 +46,11 @@ int execve(const char* path, char* const argv[], char* const envp[]) {
     inodes.lock(ip);
 
     Elf64_Ehdr elf;
-    u64* pgdir = 0;
-    if (inodes.read(ip, (char*)&elf, 0, sizeof(elf)) < sizeof(elf)) {
+    PTEntriesPtr pgdir = 0;
+    if (inodes.read(ip, (u8*)(&elf), 0, sizeof(elf)) < sizeof(elf)) {
         goto bad;
     }
-    if (strncmp(elf.e_ident, ELFMAG, 4)) {
+    if (strncmp((const char*)elf.e_ident, ELFMAG, 4)) {
         PANIC("bad magic");
     }
     pgdir = pgdir_init();
@@ -57,20 +59,20 @@ int execve(const char* path, char* const argv[], char* const envp[]) {
 
     u64 sz = 0;
     Elf64_Phdr ph;
-    for (int i = 0, off = elf.e_phoff; i < elf.e_phnum;
+    for (u64 i = 0, off = elf.e_phoff; i < elf.e_phnum;
          i++, off += sizeof(ph)) {
-        if ((inodes.read(ip, &ph, off, sizeof(ph)) != sizeof(ph)))
+        if ((inodes.read(ip, (u8*)&ph, off, sizeof(ph)) != sizeof(ph)))
             goto bad;
         if (ph.p_type != PT_LOAD)
             continue;
         if (ph.p_memsz < ph.p_filesz)
             goto bad;
-        sz = uvm_alloc(pgdir, 0, 8192, sz, ph.p_vaddr + ph.p_memsz);
+        sz = (u64)uvm_alloc(pgdir, 0, 8192, sz, ph.p_vaddr + ph.p_memsz);
         if (sz == 0)
             goto bad;
         // FIXME:loaduvm
-        if (loadseg(pgdir, (char*)ph.p_vaddr, ip, ph.p_offset, ph.p_filesz) <
-            0) {
+        if (loadseg(pgdir, (u64)ph.p_vaddr, ip, (u32)ph.p_offset,
+                    (u32)ph.p_filesz) < 0) {
             goto bad;
         }
     }
@@ -80,7 +82,7 @@ int execve(const char* path, char* const argv[], char* const envp[]) {
 
     ip = 0;
     sz = ROUNDUP(sz, PGSIZE);
-    sz = uvm_alloc(pgdir, 0, 8192, sz, sz + (PGSIZE << 1));
+    sz = (u64)uvm_alloc(pgdir, 0, 8192, sz, sz + (PGSIZE << 1));
     if (!sz)
         goto bad;
     // FIXME:clearpteu
@@ -93,29 +95,29 @@ int execve(const char* path, char* const argv[], char* const envp[]) {
             goto bad;
         sp -= strlen(argv[argc]) + 1;
         sp = ROUNDDOWN(sp, 16);
-        if (copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0) {
+        if (copyout(pgdir, (void*)sp, argv[argc], strlen(argv[argc]) + 1) < 0) {
             goto bad;
         }
         ustk[argc] = sp;
     }
     ustk[argc] = 0;
-    thiscpu()->proc->tf->x0 = argc;
+    thiscpu()->proc->tf->x0 = (u64)argc;
     if ((argc & 1) == 0)
         sp -= 8;
     u64 auxv[] = {0, AT_PAGESZ, PGSIZE, AT_NULL};
     sp -= sizeof(auxv);
-    if (copyout(pgdir, sp, auxv, sizeof(auxv)) < 0)
+    if (copyout(pgdir, (void*)sp, auxv, sizeof(auxv)) < 0)
         goto bad;
     sp -= 8;
     u64 tmp;
-    if (copyout(pgdir, sp, &tmp, 8) < 0)
+    if (copyout(pgdir, (void*)sp, &tmp, 8) < 0)
         goto bad;
-    sp = sp - (argc + 1) * 8;
+    sp = sp - (u64)(argc + 1) * 8;
     thiscpu()->proc->tf->x1 = sp;
-    if (copyout(pgdir, sp, ustk, (argc + 1) * 8) < 0)
+    if (copyout(pgdir, (void*)sp, ustk, ((u64)argc + 1) * 8) < 0)
         goto bad;
     sp -= 8;
-    if (copyout(pgdir, sp, &thiscpu()->proc->tf->x0, 8) < 0)
+    if (copyout(pgdir, (void*)sp, &thiscpu()->proc->tf->x0, 8) < 0)
         goto bad;
     u64* oldpgdir = thiscpu()->proc->pgdir;
     thiscpu()->proc->pgdir = pgdir;
@@ -124,7 +126,7 @@ int execve(const char* path, char* const argv[], char* const envp[]) {
     thiscpu()->proc->tf->elr_el1 = elf.e_entry;
     uvm_switch(thiscpu()->proc->pgdir);
     vm_free(oldpgdir);
-    return thiscpu()->proc->tf->x0;
+    return 0;
 bad:
     if (pgdir)
         vm_free(pgdir);
