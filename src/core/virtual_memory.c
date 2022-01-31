@@ -62,8 +62,11 @@ static PTEntriesPtr my_pgdir_walk(PTEntriesPtr pgdir, void* vak, int alloc) {
     return &pgdir[PX(0, vak)];
 }
 
-/* Fork a process's page table. */
-// FIXME:no err process
+/*
+ * Fork a process's page table.
+ * Copy all user-level memory resource owned by pgdir.
+ * Only used in `fork()`.
+ */
 static PTEntriesPtr my_uvm_copy(PTEntriesPtr pgdir) {
     /* TODO: Lab9 Shell */
     u64* pte;
@@ -182,7 +185,7 @@ int my_uvm_alloc(PTEntriesPtr pgdir,
     for (a = oldsz; a < newsz; a += PGSIZE) {
         mem = kalloc();
         if (mem == 0)
-            uvm_dealloc(pgdir, a, oldsz);
+            uvm_dealloc(pgdir, 0, a, oldsz);
         return 0;
         memset(mem, 0, PGSIZE);
         if (my_uvm_map(pgdir, a, PGSIZE, mem) != 0) {
@@ -240,6 +243,12 @@ char* uva2ka(uint64_t* pgdir, char* uva) {
  * Copy len bytes from p to user address va in page table pgdir.
  * Allocate physical pages if required.
  * Useful when pgdir is not the current page table.
+ *
+ * p is kernel virtual address.
+ * va is target user virtual address.
+ *
+ * this function works as:
+ * memcpy(dest=P2V(walk(pgdir, va, alloc=True)), src=p, size=len)
  */
 
 int my_copyout(PTEntriesPtr pgdir, void* va, void* p, usize len) {

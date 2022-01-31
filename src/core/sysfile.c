@@ -59,6 +59,9 @@ static int fdalloc(struct file* f) {
     return -1;
 }
 
+/*
+ * Get the parameters and call filedup.
+ */
 int sys_dup() {
     /* TODO: Lab9 Shell. */
     struct file* f;
@@ -71,6 +74,9 @@ int sys_dup() {
     return fd;
 }
 
+/*
+ * Get the parameters and call fileread.
+ */
 isize sys_read() {
     /* TODO: Lab9 Shell */
     struct file* f;
@@ -82,6 +88,9 @@ isize sys_read() {
     return -1;
 }
 
+/*
+ * Get the parameters and call filewrite.
+ */
 isize sys_write() {
     /* TODO: Lab9 Shell */
     struct file* f;
@@ -114,6 +123,10 @@ isize sys_writev() {
     return tot;
 }
 
+/*
+ * Get the parameters and call fileclose.
+ * Clear this fd of this process.
+ */
 int sys_close() {
     /* TODO: Lab9 Shell */
     int fd;
@@ -125,6 +138,9 @@ int sys_close() {
     return 0;
 }
 
+/*
+ * Get the parameters and call filestat.
+ */
 int sys_fstat() {
     /* TODO: Lab9 Shell */
     struct file* f;
@@ -168,6 +184,16 @@ int sys_fstatat() {
     return 0;
 }
 
+/*
+ * Create an inode.
+ *
+ * Example:
+ * Path is "/foo/bar/bar1", type is normal file.
+ * You should get the inode of "/foo/bar", and
+ * create an inode named "bar1" in this directory.
+ *
+ * If type is directory, you should additionally handle "." and "..".
+ */
 Inode* create(char* path,
               short type,
               short major,
@@ -359,6 +385,10 @@ int sys_chdir() {
     return 0;
 }
 int execve(const char* path, char* const argv[], char* const envp[]);
+
+/*
+ * Get the parameters and call execve.
+ */
 int sys_exec() {
     /* TODO: Lab9 Shell */
     char path[128], *argv[32];  // MAXPATH,MAXARG

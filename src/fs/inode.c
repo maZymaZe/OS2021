@@ -496,7 +496,7 @@ Inode* nameiparent(const char* path, char* name, OpContext* ctx) {
  * Caller must hold ip->lock.
  */
 void stati(Inode* ip, struct stat* st) {
-    // TODO: Lab9 Shell
+    /* TODO: Lab9 Shell */
     st->st_dev = 1;
     st->st_ino = ip->inode_no;
     st->st_nlink = ip->entry.num_links;

@@ -157,6 +157,8 @@ int argint(int n, int* ip) {
         *ip = proc->tf->x4;
     if (n == 5)
         *ip = proc->tf->x5;
+    // set *ip to x[n] like:
+    // *ip = proc->tf->x[n];
 
     return 0;
 }
@@ -184,6 +186,8 @@ int argu64(int n, u64* ip) {
         *ip = proc->tf->x4;
     if (n == 5)
         *ip = proc->tf->x5;
+    // set *ip to x[n] like:
+    // *ip = proc->tf->x[n];
 
     return 0;
 }
