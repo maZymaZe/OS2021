@@ -30,3 +30,6 @@ int argint(int n, int* ip);
 int argu64(int n, u64* ip);
 int argptr(int n, char** pp, usize size);
 int argstr(int n, char** pp);
+int in_user(void* s, usize n);
+int fetchint(u64 addr, long* ip);
+int fetchstr(u64 addr, char** pp);

@@ -28,6 +28,7 @@ void init_system_once() {
     init_char_device();
     init_console();
     init_sched();
+    init_proc();
 
     init_memory_manager();
     init_virtual_memory();

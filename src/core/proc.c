@@ -14,6 +14,16 @@
 void forkret();
 extern void trap_return();
 extern void initenter();
+
+static struct proc* initproc;
+
+/*
+ * Initialize the spinlock for ptable to serialize the access to ptable
+ */
+SpinLock waitlock;
+void init_proc() {
+    initlock(&waitlock, "waitlock");
+}
 /*
  * Look through the process table for an UNUSED proc.
  * If found, change state to EMBRYO and initialize
@@ -118,6 +128,8 @@ void spawn_init_process_sd() {
 
     p->state = RUNNABLE;
     p->sz = PGSIZE;
+
+    initproc = p;
 }
 
 /*
@@ -135,17 +147,49 @@ void forkret() {
     return;
 }
 
+void wakeup1(void* chan) {
+    proc* p;
+    for (int i = 0; i < NPROC; i++) {
+        p = thiscpu()->scheduler->ptable.proc + i;
+        if (p->state == SLEEPING && p->chan == chan) {
+            p->state = RUNNABLE;
+        }
+    }
+}
 /*
  * Exit the current process.  Does not return.
  * An exited process remains in the zombie state
  * until its parent calls wait() to find out it exited.
  */
 NO_RETURN void exit() {
-    struct proc* p = thiscpu()->proc;
+    proc* p = thiscpu()->proc;
     /* TODO: Lab9 Shell */
 
+    if (p == initproc) {
+        PANIC("exit INITPROC");
+    }
+    for (int fd = 0; fd < NOFILE; fd++) {
+        if (p->ofile[fd]) {
+            fileclose(p->ofile[fd]);
+            p->ofile[fd] = 0;
+        }
+    }
+    OpContext ctx;
+    bcache.begin_op(&ctx);
+    inodes.put(&ctx, p->cwd);
+    bcache.end_op(&ctx);
+    p->cwd = 0;
     acquire_sched_lock();
-    struct proc* p = thiscpu()->proc;
+    wakeup1(p->parent);
+    for (int i = 0; i < NPROC; i++) {
+        proc* q = thiscpu()->scheduler->ptable.proc + i;
+        if (q->parent == p) {
+            p->parent = initproc;
+            if (p->state == ZOMBIE) {
+                wakeup1(p->parent);
+            }
+        }
+    }
     p->state = ZOMBIE;
     sched();
 }
@@ -229,9 +273,21 @@ void add_loop_test(int times) {
     }
 }
 
+// Grow or shrink user memory by n bytes.
+// Return 0 on success, -1 on failure.
 int growproc(int n) {
     /* TODO: lab9 shell */
-
+    proc* p = thiscpu()->proc;
+    usize sz = p->sz;
+    if (n > 0) {
+        // FIXME
+        sz = uvm_alloc(p->pgdir, 0, 8192, sz, sz + n);
+        if (sz == 0)
+            return -1;
+    } else if (n < 0) {
+        sz = uvm_dealloc(p->pgdir, 0, sz, sz + n);
+    }
+    p->sz = sz;
     return 0;
 }
 
@@ -242,8 +298,32 @@ int growproc(int n) {
  */
 int fork() {
     /* TODO: Lab9 shell */
+    proc *np, *p = thiscpu()->proc;
+    np = alloc_proc();
+    if (np == 0)
+        return -1;
+    np->pgdir = uvm_copy(p->pgdir);
+    if (np->pgdir == 0) {
+        kfree(np->kstack);
+        np->kstack = 0;
+        np->state = UNUSED;
+        return -1;
+    }
+    np->sz = p->sz;
+    memcpy(np->tf, p->tf, sizeof(*(p->tf)));
+    np->tf->x0 = 0;
+    np->parent = p;
 
-    return 0;
+    for (int i = 0; i < NOFILE; i++) {
+        if (p->ofile[i]) {
+            np->ofile[i] = filedup(p->ofile[i]);
+        }
+    }
+    strncpy(np->name, p->name, 16);
+    np->cwd = inodes.share(p->cwd);
+    np->state = RUNNABLE;
+
+    return p->pid;
 }
 
 /*
@@ -252,6 +332,36 @@ int fork() {
  */
 int wait() {
     /* TODO: Lab9 shell. */
-
-    return 0;
+    proc *p, *tp;
+    tp = thiscpu()->proc;
+    p = thiscpu()->scheduler->ptable.proc;
+    int kids, pid;
+    acquire_sched_lock();
+    while (true) {
+        kids = 0;
+        for (int i = 0; i < NPROC; i++) {
+            proc* q = p + i;
+            if (q->parent != tp)
+                continue;
+            kids = 1;
+            if (q->state == ZOMBIE) {
+                int pid = q->pid;
+                q->killed = 0;
+                q->state = UNUSED;
+                q->pid = 0;
+                q->parent = 0;
+                vm_free(q->pgdir);
+                kfree(q->kstack);
+                release_sched_lock();
+                return pid;
+            }
+        }
+        if (kids == 0 || tp->killed) {
+            release_sched_lock();
+            return -1;
+        }
+        // FIXME
+        sleep(tp, &waitlock);
+    }
+    PANIC("???");
 }

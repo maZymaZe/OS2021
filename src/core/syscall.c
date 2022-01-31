@@ -11,6 +11,8 @@ int sys_gettid() {
 int sys_ioctl() {
     /* TODO: Lab9 Shell */
     /* Assert tf->x1 == 0x5413 */
+    if (thiscpu()->proc->tf->x1 != 0x5413)
+        PANIC("sys_ioctl");
     return 0;
 }
 int sys_sigprocmask() {
@@ -98,6 +100,19 @@ int in_user(void* s, usize n) {
     return 0;
 }
 
+// User code makes a system call with INT T_SYSCALL. System call number
+// in r0. Arguments on the stack, from the user call to the C library
+// system call function. The saved user sp points to the first argument.
+
+// Fetch the int at addr from the current process.
+int fetchint(u64 addr, long* ip) {
+    // FIXME
+    // if (!in_user(addr, 8)) {
+    //     return -1;
+    // }
+    *ip = *(long*)(addr);
+    return 0;
+}
 /*
  * Fetch the nul-terminated string at addr from the current process.
  * Doesn't actually copy the string - just sets *pp to point at it.
@@ -130,6 +145,8 @@ int argint(int n, int* ip) {
         // warn("too many system call parameters");
         return -1;
     }
+    if (n == 0)
+        *ip = proc->tf->x0;
     if (n == 1)
         *ip = proc->tf->x1;
     if (n == 2)
@@ -155,6 +172,8 @@ int argu64(int n, u64* ip) {
         // warn("too many system call parameters");
         return -1;
     }
+    if (n == 0)
+        *ip = proc->tf->x0;
     if (n == 1)
         *ip = proc->tf->x1;
     if (n == 2)

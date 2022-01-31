@@ -63,9 +63,22 @@ static PTEntriesPtr my_pgdir_walk(PTEntriesPtr pgdir, void* vak, int alloc) {
 }
 
 /* Fork a process's page table. */
+// FIXME:no err process
 static PTEntriesPtr my_uvm_copy(PTEntriesPtr pgdir) {
     /* TODO: Lab9 Shell */
-
+    u64* pte;
+    u64 pa;
+    char* mem;
+    PTEntriesPtr newpgdir = pgdir_init();
+    for (u64 i = 0;; i += PGSIZE) {
+        pte = pgdir_walk(pgdir, i, 0);
+        if ((!pte) || (*pte & PTE_VALID) == 0)
+            break;
+        pa = P2K(PTE_ADDRESS(*pte));
+        mem = kalloc();
+        memmove(mem, (char*)pa, PGSIZE);
+        my_uvm_map(newpgdir, i, PGSIZE, mem);
+    }
     return 0;
 }
 
@@ -121,6 +134,31 @@ int my_uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, uint64_t pa) {
     return 0;
 }
 
+// Remove npages of mappings starting from va. va must be
+// page-aligned. The mappings must exist.
+// Optionally free the physical memory.
+void uvmunmap(PTEntriesPtr pgdir, u64 va, u64 npages, int do_free) {
+    u64 a;
+    u64* pte;
+    if (va % PGSIZE) {
+        PANIC("not aligned");
+    }
+    for (a = va; a < va + npages * PGSIZE; a += PGSIZE) {
+        pte = pgdir_walk(pgdir, a, 0);
+        if (!pte)
+            PANIC("walk");
+        if (!(*pte & PTE_VALID))
+            PANIC("not mapped");
+        if (PTE_FLAGS(*pte) == PTE_VALID)
+            PANIC("not a leaf");
+        if (do_free) {
+            u64 pa = P2K(PTE_ADDRESS(*pte));
+            kfree(pa);
+        }
+        *pte = 0;
+    }
+}
+
 /*
  * Allocate page tables and physical memory to grow process
  * from oldsz to newsz, which need not be page aligned.
@@ -134,8 +172,25 @@ int my_uvm_alloc(PTEntriesPtr pgdir,
                  usize oldsz,
                  usize newsz) {
     /* TODO: Lab9 Shell */
-
-    return 0;
+    char* mem;
+    u64 a;
+    if (newsz < oldsz)
+        return oldsz;
+    if (base + newsz > stksz)
+        PANIC("overflow");
+    oldsz = ROUNDUP(oldsz, PGSIZE);
+    for (a = oldsz; a < newsz; a += PGSIZE) {
+        mem = kalloc();
+        if (mem == 0)
+            uvm_dealloc(pgdir, a, oldsz);
+        return 0;
+        memset(mem, 0, PGSIZE);
+        if (my_uvm_map(pgdir, a, PGSIZE, mem) != 0) {
+            kfree(mem);
+            uvm_dealloc(pgdir, 0, a, oldsz);
+        }
+    }
+    return newsz;
 }
 
 /*
@@ -147,10 +202,40 @@ int my_uvm_alloc(PTEntriesPtr pgdir,
 
 int my_uvm_dealloc(PTEntriesPtr pgdir, usize base, usize oldsz, usize newsz) {
     /* TODO: Lab9 Shell */
-
+    if (newsz >= oldsz)
+        return oldsz;
+    if (ROUNDUP(newsz, PGSIZE) < ROUNDUP(oldsz, PGSIZE)) {
+        int npgs = (ROUNDUP(oldsz, PGSIZE) - ROUNDUP(newsz, PGSIZE)) / PGSIZE;
+        uvmunmap(pgdir, ROUNDUP(newsz, PGSIZE), npgs, 1);
+    }
     return 0;
 }
 
+// Clear PTE_U on a page. Used to create an inaccessible page beneath
+// the user stack (to trap stack underflow).
+void clearpteu(PTEntriesPtr* pgdir, char* uva) {
+    u64* pte;
+
+    pte = pgdir_walk(pgdir, uva, 0);
+    if (pte == 0) {
+        panic("clearpteu");
+    }
+
+    // in ARM, we change the AP field (ap & 0x3) << 4)
+    *pte = (*pte & ~(0x03 << 6));
+}
+
+// PAGEBREAK!
+// Map user virtual address to kernel address.
+char* uva2ka(uint64_t* pgdir, char* uva) {
+    // FIXME:alloc or not
+    u64* pte = pgdir_walk(pgdir, uva, 0);
+    if ((*pte & (PTE_VALID)) == 0)
+        return 0;
+    if (((*pte) & PTE_USER) == 0)
+        return 0;
+    return (char*)P2K(PTE_ADDRESS(*pte));
+}
 /*
  * Copy len bytes from p to user address va in page table pgdir.
  * Allocate physical pages if required.
@@ -159,7 +244,22 @@ int my_uvm_dealloc(PTEntriesPtr pgdir, usize base, usize oldsz, usize newsz) {
 
 int my_copyout(PTEntriesPtr pgdir, void* va, void* p, usize len) {
     /* TODO: Lab9 Shell */
-
+    char *buf, *pa0;
+    u64 n, va0;
+    buf = p;
+    while (len > 0) {
+        va0 = ROUNDDOWN(va, PAGE_SIZE);
+        pa0 = uva2ka(pgdir, va0);
+        if (pa0 == 0)
+            return -1;
+        n = PAGE_SIZE - ((u64)va - va0);
+        if (n > len)
+            n = len;
+        memmove(pa0 + ((u64)va - va0), buf, n);
+        len -= n;
+        buf += n;
+        va = va0 + PAGE_SIZE;
+    }
     return 0;
 }
 

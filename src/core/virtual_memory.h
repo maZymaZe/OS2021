@@ -53,6 +53,8 @@ int uvm_alloc(PTEntriesPtr pgdir,
               size_t newsz);
 int uvm_dealloc(PTEntriesPtr pgdir, size_t base, size_t oldsz, size_t newsz);
 void uvm_switch(PTEntriesPtr pgdir);
+void clearpteu(PTEntriesPtr* pgdir, char* uva);
+char* uva2ka(uint64_t* pgdir, char* uva);
 int copyout(PTEntriesPtr pgdir,
             void* tgt_address,
             void* src_address,

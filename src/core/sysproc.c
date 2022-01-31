@@ -12,11 +12,18 @@ int sys_yield() {
 
 usize sys_brk() {
     /* TODO: Lab9 Shell */
-    return 0;
+    u64 n;
+    if (argint(0, &n) < 0)
+        return -1;
+    u64 sz = thiscpu()->proc->sz;
+    if (growproc(n) < 0) {
+        return -1;
+    }
+    return sz;
 }
 
 int sys_clone() {
-    void *childstk;
+    void* childstk;
     i32 flag;
     if (argint(0, &flag) < 0 || argint(1, &childstk) < 0)
         return -1;
@@ -29,14 +36,15 @@ int sys_clone() {
 
 int sys_wait4() {
     i32 pid, opt;
-    int *wstatus;
-    void *rusage;
+    int* wstatus;
+    void* rusage;
     if (argint(0, &pid) < 0 || argint(1, &wstatus) < 0 || argint(2, &opt) < 0 ||
         argint(3, &rusage) < 0)
         return -1;
 
     // if (pid != -1 || wstatus != 0 || opt != 0 || rusage != 0) {
-    //     printf("sys_wait4: unimplemented. pid %d, wstatus 0x%p, opt 0x%x, rusage 0x%p\n",
+    //     printf("sys_wait4: unimplemented. pid %d, wstatus 0x%p, opt 0x%x,
+    //     rusage 0x%p\n",
     //            pid,
     //            wstatus,
     //            opt,
