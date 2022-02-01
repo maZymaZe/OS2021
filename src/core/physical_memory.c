@@ -33,7 +33,7 @@ static void* freelist_alloc(void* datastructure_ptr) {
  * Free the page of physical memory pointed at by page_address.
  */
 static void freelist_free(void* datastructure_ptr, void* page_address) {
-    if ((uint64_t)page_address % PAGE_SIZE || page_address < end ||
+    if ((u64)page_address % PAGE_SIZE || page_address < end ||
         (void*)P2K(0x3F000000) <= page_address) {
         PANIC("ERR ADDR");
     }

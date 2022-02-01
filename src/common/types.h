@@ -8,17 +8,17 @@ typedef _Bool bool;
 #define true 1
 #define false 0
 
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef signed long long int64_t;
-typedef unsigned long long uint64_t;
+typedef signed char i8;
+typedef unsigned char u8;
+typedef signed short i16;
+typedef unsigned short u16;
+typedef signed int i32;
+typedef unsigned int u32;
+typedef signed long long i64;
+typedef unsigned long long u64;
 
-typedef int64_t ssize_t;
-typedef uint64_t size_t;
+typedef i64 ssize_t;
+typedef u64 size_t;
 
 /* Efficient min and max operations */
 #define MIN(_a, _b)             \
@@ -37,14 +37,14 @@ typedef uint64_t size_t;
 
 #define ROUNDDOWN(a, n)               \
     ({                                \
-        uint64_t __a = (uint64_t)(a); \
+        u64 __a = (u64)(a);           \
         (typeof(a))(__a - __a % (n)); \
     })
 
-#define ROUNDUP(a, n)                                         \
-    ({                                                        \
-        uint64_t __n = (uint64_t)(n);                         \
-        (typeof(a))(ROUNDDOWN((uint64_t)(a) + __n - 1, __n)); \
+#define ROUNDUP(a, n)                                    \
+    ({                                                   \
+        u64 __n = (u64)(n);                              \
+        (typeof(a))(ROUNDDOWN((u64)(a) + __n - 1, __n)); \
     })
 
 // this is compatible with C++: <https://en.cppreference.com/w/c/types/NULL>.

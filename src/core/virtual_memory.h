@@ -21,8 +21,8 @@ typedef struct {
     void (*vm_free)(PTEntriesPtr pgdir);
     int (*uvm_map)(PTEntriesPtr pgdir,
                    void* kernel_address,
-                   uint64_t size,
-                   uint64_t physical_address);
+                   u64 size,
+                   u64 physical_address);
     int (*uvm_alloc)(PTEntriesPtr pgdir,
                      size_t base,
                      size_t stksz,
@@ -45,7 +45,7 @@ void vm_free(PTEntriesPtr pgdir);
 int uvm_map(PTEntriesPtr pgdir,
             void* kernel_address,
             size_t size,
-            uint64_t physical_address);
+            u64 physical_address);
 int uvm_alloc(PTEntriesPtr pgdir,
               size_t base,
               size_t stksz,
@@ -54,7 +54,7 @@ int uvm_alloc(PTEntriesPtr pgdir,
 int uvm_dealloc(PTEntriesPtr pgdir, size_t base, size_t oldsz, size_t newsz);
 void uvm_switch(PTEntriesPtr pgdir);
 void clearpteu(PTEntriesPtr pgdir, char* uva);
-char* uva2ka(uint64_t* pgdir, char* uva);
+char* uva2ka(u64* pgdir, char* uva);
 int copyout(PTEntriesPtr pgdir,
             void* tgt_address,
             void* src_address,
@@ -67,13 +67,13 @@ void vm_test();
 #define PGSHIFT \
     12  // bits of offset within a page
         // shift a physical address to the right place for a PTE.
-        // #define V2P(a) (((uint64_t)(a)) - KERNBASE)
+        // #define V2P(a) (((u64)(a)) - KERNBASE)
         // #define P2V(a) ((void*)(((char*)(a)) + KERNBASE))
 
 // extract the three 9-bit page table indices from a virtual address.
 #define PXMASK 0x1FF  // 9 bits
 #define PXSHIFT(level) (PGSHIFT + (9 * (level)))
-#define PX(level, va) ((((uint64_t)(va)) >> PXSHIFT(level)) & PXMASK)
+#define PX(level, va) ((((u64)(va)) >> PXSHIFT(level)) & PXMASK)
 
 // one beyond the highest possible virtual address.
 // MAXVA is actually one bit less than the max allowed by

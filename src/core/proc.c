@@ -22,7 +22,7 @@ static struct proc* initproc;
  */
 SpinLock waitlock;
 void init_proc() {
-    initlock(&waitlock, "waitlock");
+    init_spinlock(&waitlock, "waitlock");
 }
 /*
  * Look through the process table for an UNUSED proc.
@@ -58,7 +58,7 @@ static struct proc* alloc_proc() {
 
     p->context =
         (stp + KSTACKSIZE - sizeof(Trapframe) - sizeof(struct context));
-    p->context->r30 = (uint64_t)initenter;
+    p->context->r30 = (u64)initenter;
 
     return p;
 }

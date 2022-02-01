@@ -10,7 +10,6 @@
 
 extern PTEntries kpgdir;
 VMemory vmem;
-
 PTEntriesPtr pgdir_init() {
     return vmem.pgdir_init();
 }
@@ -23,7 +22,7 @@ void vm_free(PTEntriesPtr pgdir) {
     vmem.vm_free(pgdir);
 }
 
-int uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, uint64_t pa) {
+int uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, u64 pa) {
     return vmem.uvm_map(pgdir, va, sz, pa);
 }
 
@@ -50,39 +49,16 @@ static PTEntriesPtr my_pgdir_init() {
 static PTEntriesPtr my_pgdir_walk(PTEntriesPtr pgdir, void* vak, int alloc) {
     /* TO-DO: Lab2 memory*/
     for (int level = 3; level > 0; level--) {
-        uint64_t* pte = &(pgdir[PX(level, vak)]);
+        u64* pte = &(pgdir[PX(level, vak)]);
         if (*pte & PTE_VALID) {
             pgdir = P2K(PTE_ADDRESS(*pte));
         } else {
             if (!alloc || (pgdir = (PTEntriesPtr)kalloc()) == 0)
                 return 0;
-            *pte = K2P((uint64_t)pgdir) | PTE_TABLE;
+            *pte = K2P((u64)pgdir) | PTE_TABLE;
         }
     }
     return &pgdir[PX(0, vak)];
-}
-
-/*
- * Fork a process's page table.
- * Copy all user-level memory resource owned by pgdir.
- * Only used in `fork()`.
- */
-static PTEntriesPtr my_uvm_copy(PTEntriesPtr pgdir) {
-    /* TODO: Lab9 Shell */
-    u64* pte;
-    u64 pa;
-    char* mem;
-    PTEntriesPtr newpgdir = pgdir_init();
-    for (u64 i = 0;; i += PGSIZE) {
-        pte = pgdir_walk(pgdir, i, 0);
-        if ((!pte) || (*pte & PTE_VALID) == 0)
-            break;
-        pa = P2K(PTE_ADDRESS(*pte));
-        mem = kalloc();
-        memmove(mem, (char*)pa, PGSIZE);
-        my_uvm_map(newpgdir, i, PGSIZE, mem);
-    }
-    return 0;
 }
 
 /* Free a user page table and all the physical memory pages. */
@@ -114,16 +90,16 @@ void my_vm_free(PTEntriesPtr pgdir) {
  * Return -1 if failed else 0.
  */
 
-int my_uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, uint64_t pa) {
+int my_uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, u64 pa) {
     /* TO-DO: Lab2 memory*/
-    uint64_t a, last;
+    u64 a, last;
     PTEntriesPtr pte;
     if (!sz)
         PANIC("map:sz 0");
-    a = ROUNDDOWN(va, PGSIZE);
-    last = ROUNDDOWN((va + sz - 1), PGSIZE);
+    a = (u64)ROUNDDOWN(va, PGSIZE);
+    last = (u64)ROUNDDOWN((va + sz - 1), PGSIZE);
     while (true) {
-        if ((pte = my_pgdir_walk(pgdir, a, 1)) == 0)
+        if ((pte = pgdir_walk(pgdir, (void*)a, 1)) == 0)
             return -1;
         if (*pte & PTE_VALID)
             PANIC("remap");
@@ -137,6 +113,29 @@ int my_uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, uint64_t pa) {
     return 0;
 }
 
+/*
+ * Fork a process's page table.
+ * Copy all user-level memory resource owned by pgdir.
+ * Only used in `fork()`.
+ */
+static PTEntriesPtr my_uvm_copy(PTEntriesPtr pgdir) {
+    /* TODO: Lab9 Shell */
+    u64* pte;
+    u64 pa;
+    char* mem;
+    PTEntriesPtr newpgdir = pgdir_init();
+    for (u64 i = 0;; i += PGSIZE) {
+        pte = pgdir_walk(pgdir, i, 0);
+        if ((!pte) || (*pte & PTE_VALID) == 0)
+            break;
+        pa = P2K(PTE_ADDRESS(*pte));
+        mem = kalloc();
+        memmove(mem, (char*)pa, PGSIZE);
+        uvm_map(newpgdir, i, PGSIZE, mem);
+    }
+    return newpgdir;
+}
+
 // Remove npages of mappings starting from va. va must be
 // page-aligned. The mappings must exist.
 // Optionally free the physical memory.
@@ -147,7 +146,7 @@ void uvmunmap(PTEntriesPtr pgdir, u64 va, u64 npages, int do_free) {
         PANIC("not aligned");
     }
     for (a = va; a < va + npages * PGSIZE; a += PGSIZE) {
-        pte = pgdir_walk(pgdir, a, 0);
+        pte = pgdir_walk(pgdir, (void*)a, 0);
         if (!pte)
             PANIC("walk");
         if (!(*pte & PTE_VALID))
@@ -156,7 +155,7 @@ void uvmunmap(PTEntriesPtr pgdir, u64 va, u64 npages, int do_free) {
             PANIC("not a leaf");
         if (do_free) {
             u64 pa = P2K(PTE_ADDRESS(*pte));
-            kfree(pa);
+            kfree((void*)pa);
         }
         *pte = 0;
     }
@@ -184,16 +183,17 @@ int my_uvm_alloc(PTEntriesPtr pgdir,
     oldsz = ROUNDUP(oldsz, PGSIZE);
     for (a = oldsz; a < newsz; a += PGSIZE) {
         mem = kalloc();
-        if (mem == 0)
+        if (mem == 0) {
             uvm_dealloc(pgdir, 0, a, oldsz);
-        return 0;
+            return 0;
+        }
         memset(mem, 0, PGSIZE);
-        if (my_uvm_map(pgdir, a, PGSIZE, mem) != 0) {
+        if (uvm_map(pgdir, (void*)a, PGSIZE, (u64)mem) != 0) {
             kfree(mem);
             uvm_dealloc(pgdir, 0, a, oldsz);
         }
     }
-    return newsz;
+    return (int)newsz;
 }
 
 /*
@@ -206,9 +206,10 @@ int my_uvm_alloc(PTEntriesPtr pgdir,
 int my_uvm_dealloc(PTEntriesPtr pgdir, usize base, usize oldsz, usize newsz) {
     /* TODO: Lab9 Shell */
     if (newsz >= oldsz)
-        return oldsz;
+        return (int)oldsz;
     if (ROUNDUP(newsz, PGSIZE) < ROUNDUP(oldsz, PGSIZE)) {
-        int npgs = (ROUNDUP(oldsz, PGSIZE) - ROUNDUP(newsz, PGSIZE)) / PGSIZE;
+        int npgs =
+            (int)((ROUNDUP(oldsz, PGSIZE) - ROUNDUP(newsz, PGSIZE)) / PGSIZE);
         uvmunmap(pgdir, ROUNDUP(newsz, PGSIZE), npgs, 1);
     }
     return 0;
@@ -221,22 +222,29 @@ void clearpteu(PTEntriesPtr pgdir, char* uva) {
 
     pte = pgdir_walk(pgdir, uva, 0);
     if (pte == 0) {
-        panic("clearpteu");
+        PANIC("clearpteu");
     }
 
     // in ARM, we change the AP field (ap & 0x3) << 4)
-    *pte = (*pte & ~(0x03 << 6));
+    *pte = (*pte & ~(0x03U << 6));
 }
 
 // PAGEBREAK!
 // Map user virtual address to kernel address.
-char* uva2ka(uint64_t* pgdir, char* uva) {
+char* uva2ka(u64* pgdir, char* uva) {
     // FIXME:alloc or not
     u64* pte = pgdir_walk(pgdir, uva, 0);
     if ((*pte & (PTE_VALID)) == 0)
         return 0;
     if (((*pte) & PTE_USER) == 0)
         return 0;
+    return (char*)P2K(PTE_ADDRESS(*pte));
+}
+// PAGEBREAK!
+// Map user virtual address to kernel address.
+char* uva2ka1(u64* pgdir, char* uva) {
+    // FIXME:alloc or not
+    u64* pte = pgdir_walk(pgdir, uva, 1);
     return (char*)P2K(PTE_ADDRESS(*pte));
 }
 /*
@@ -257,8 +265,9 @@ int my_copyout(PTEntriesPtr pgdir, void* va, void* p, usize len) {
     u64 n, va0;
     buf = p;
     while (len > 0) {
-        va0 = ROUNDDOWN(va, PAGE_SIZE);
-        pa0 = uva2ka(pgdir, va0);
+        va0 = (u64)ROUNDDOWN(va, PAGE_SIZE);
+        // FIXME
+        pa0 = uva2ka1(pgdir, (char*)va0);
         if (pa0 == 0)
             return -1;
         n = PAGE_SIZE - ((u64)va - va0);
@@ -290,7 +299,7 @@ void init_virtual_memory() {
 void vm_test() {
     /* TO-DO: Lab2 memory*/
 
-    const int TEST_RUNS = 200;
+    // const int TEST_RUNS = 200;
 
     // // test1
     // void* gen[TEST_RUNS];
@@ -329,18 +338,18 @@ void vm_test() {
     // }
     // vm_free(pgdir);
 
-    *((int64_t*)P2K(0)) = 0xac;
+    *((i64*)P2K(0)) = 0xac;
     char* p = kalloc();
     memset(p, 0, PAGE_SIZE);
-    uvm_map((uint64_t*)p, (void*)0x1000, PAGE_SIZE, 0);
-    uvm_switch(p);
-    PTEntry* pte = pgdir_walk(p, (void*)0x1000, 0);
+    uvm_map((u64*)p, (void*)0x1000, PAGE_SIZE, 0);
+    uvm_switch((u64*)p);
+    PTEntry* pte = pgdir_walk((u64*)p, (void*)0x1000, 0);
     if (pte == 0) {
         puts("walk should not return 0");
         while (1)
             ;
     }
-    if (((uint64_t)pte >> 48) == 0) {
+    if (((u64)pte >> 48) == 0) {
         puts("pte should be virtual address");
         while (1)
             ;
@@ -355,7 +364,7 @@ void vm_test() {
         while (1)
             ;
     }
-    if (*((int64_t*)0x1000) == 0xac) {
+    if (*((i64*)0x1000) == 0xac) {
         puts("Test_Map_Region Pass!");
     } else {
         puts("Test_Map_Region Fail!");

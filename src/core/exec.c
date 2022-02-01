@@ -12,7 +12,7 @@
 #include <core/sched.h>
 #include <core/virtual_memory.h>
 
-// static uint64_t auxv[][2] = {{AT_PAGESZ, PAGE_SIZE}};
+// static u64 auxv[][2] = {{AT_PAGESZ, PAGE_SIZE}};
 // Load a program segment into pagetable at virtual address va.
 // va must be page-aligned
 // and the pages from va to va+sz must already be mapped.
