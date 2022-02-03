@@ -101,6 +101,8 @@ void spawn_init_process() {
 
     p->state = RUNNABLE;
     p->sz = PGSIZE;
+
+    initproc = p;
 }
 void spawn_init_process_sd() {
     struct proc* p;
@@ -128,22 +130,36 @@ void spawn_init_process_sd() {
 
     p->state = RUNNABLE;
     p->sz = PGSIZE;
-
-    initproc = p;
 }
 
 /*
  * A fork child will first swtch here, and then "return" to user space.
  */
-int sdtest = 0;
+int procnum = 0;
 void forkret() {
     /* TO-DO: Lab3 Process */
     release_sched_lock();
     /* TO-DO: Lab3 Process */
-    if (sdtest) {
-        sd_test();
+    int x = procnum;
+    procnum++;
+    if (x == 1) {
+        // sd_test();
+        // sd_test();
+        init_filesystem();
+        spawn_init_process();
+        //  sd_test();
     }
-    sdtest = 1;
+
+    // static int first = 1;
+    // if (first) {
+    //     // File system initialization must be run in the context of a
+    //     // regular process (e.g., because it calls sleep), and thus cannot
+    //     // be run from main().
+    //     first = 0;
+    //     printf("init fs\n");
+    //     init_filesystem();
+    // }
+
     return;
 }
 

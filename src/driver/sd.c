@@ -551,6 +551,7 @@ void sd_init() {
     printf("lba2: %x\nsz2: %x\n", lba2, sz2);
     set_interrupt_handler(IRQ_SDIO, sd_intr);
     set_interrupt_handler(IRQ_ARASANSDIO, sd_intr);
+    // printf("set IRQ_ARASANSDIO%d\n", IRQ_ARASANSDIO);
     /* TODO: Lab7 driver. */
 }
 
@@ -634,9 +635,11 @@ void sd_intr() {
         if (intr != INT_READ_RDY && intr != INT_DATA_DONE) {
             PANIC("...");
         }
-        int is_write = (bid->flags == B_DIRTY);
+        disb();
+        int is_write = (bid->flags & B_DIRTY);
         if ((is_write != 0 && intr != INT_DATA_DONE) ||
             (is_write == 0 && intr != INT_READ_RDY)) {
+            printf("%d | %d\n", is_write, intr);
             PANIC(",,,");
         }
         if (!is_write) {

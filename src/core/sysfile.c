@@ -391,25 +391,27 @@ int execve(const char* path, char* const argv[], char* const envp[]);
  */
 int sys_exec() {
     /* TODO: Lab9 Shell */
-    char path[128], *argv[32];  // MAXPATH,MAXARG
+    char *path, *argv[32];  // MAXPATH,MAXARG
     int i;
-    u64 uargv, uarg;
-    if (argstr(0, &path) < 0 || argu64(1, &uargv) < 0) {
+    u64 uargv, uarg, uenvv;
+    if (argstr(0, &path) < 0 || argu64(1, &uargv) < 0 || argu64(2, &uenvv)) {
         return -1;
     }
     memset(argv, 0, sizeof(argv));
-    for (i = 0;; i++) {
-        if (i >= 32) {
-            goto bbad;
-        }
-        if (fetchint(uargv + 8 * i, &uarg) < 0)
-            return -1;
-        if (uarg == 0) {
-            argv[i] = 0;
-            break;
-        }
-        if (fetchstr(uarg, &argv[i]) < 0) {
-            return -1;
+    if (uargv) {
+        for (i = 0;; i++) {
+            if (i >= 32) {
+                goto bbad;
+            }
+            if (fetchint(uargv + 8 * i, &uarg) < 0)
+                return -1;
+            if (uarg == 0) {
+                argv[i] = 0;
+                break;
+            }
+            if (fetchstr(uarg, &argv[i]) < 0) {
+                return -1;
+            }
         }
     }
     return execve(path, argv, 0);

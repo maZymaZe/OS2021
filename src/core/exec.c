@@ -36,6 +36,7 @@ static int loadseg(PTEntriesPtr pgdir, u64 va, Inode* ip, u32 offset, u32 sz) {
 
 int execve(const char* path, char* const argv[], char* const envp[]) {
     /* TODO: Lab9 Shell */
+    printf("enter exec,%s\n", path);
     if (envp) {
     }
     OpContext ctx;
@@ -90,15 +91,18 @@ int execve(const char* path, char* const argv[], char* const envp[]) {
     u64 sp = sz;
     int argc = 0;
     u64 ustk[3 + 32 + 1];
-    for (; argv[argc]; argc++) {
-        if (argc > 32)
-            goto bad;
-        sp -= strlen(argv[argc]) + 1;
-        sp = ROUNDDOWN(sp, 16);
-        if (copyout(pgdir, (void*)sp, argv[argc], strlen(argv[argc]) + 1) < 0) {
-            goto bad;
+    if (argv) {
+        for (; argv[argc]; argc++) {
+            if (argc > 32)
+                goto bad;
+            sp -= strlen(argv[argc]) + 1;
+            sp = ROUNDDOWN(sp, 16);
+            if (copyout(pgdir, (void*)sp, argv[argc], strlen(argv[argc]) + 1) <
+                0) {
+                goto bad;
+            }
+            ustk[argc] = sp;
         }
-        ustk[argc] = sp;
     }
     ustk[argc] = 0;
     thiscpu()->proc->tf->x0 = (u64)argc;

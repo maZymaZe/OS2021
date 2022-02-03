@@ -84,11 +84,12 @@ const char(*syscall_table_str[NR_SYSCALL]) = {
 u64 syscall_dispatch(Trapframe* frame) {
     /* TODO: Lab9 Shell */
     int sysno;
+    proc* p = thiscpu()->proc;
+    sysno = p->tf->x8;
     if (sysno < 400)
         printf("%d %s\n", sysno, syscall_table_str[sysno]);
-    syscall_table[sysno]();
-
-    return 0;
+    p->tf->x0 = syscall_table[sysno]();
+    return p->tf->x0;
 }
 #define USPACE_TOP USERTOP
 /* Check if a block of memory lies within the process user space. */

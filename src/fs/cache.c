@@ -154,11 +154,12 @@ void init_bcache(const SuperBlock* _sblock, const BlockDevice* _device) {
     // TODO
     ArenaPageAllocator allocator = {.allocate = kalloc, .free = kfree};
     init_list_node(&head);
-    init_spinlock(&lock, "bache");
+    init_spinlock(&lock, "bcache");
     init_arena(&arena, sizeof(Block), allocator);
 
     init_spinlock(&log.lock, "log");
     log.mu = 0;
+    printf("%d| %d\n", sblock->num_log_blocks - 1, LOG_MAX_SIZE);
     log.mx = MIN(sblock->num_log_blocks - 1, LOG_MAX_SIZE);
     recover_from_log();
 }
