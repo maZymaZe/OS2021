@@ -1,0 +1,53 @@
+to
+
+enter exec,/init
+read 3efee0c0 ,dest 3efeb000,off 0,sz 1000
+read 3efee0c0 ,dest 3ebe7000,off 1000,sz 1000
+read 3efee0c0 ,dest 3ebe5000,off 1000,sz 28c
+ph.memsz228c
+pgdir:3efec000 |pvaddr:400000 | poffset:0| pfilesz228c
+read 3efee0c0 ,dest 3efeb000,off 2eb8,sz 270
+ph.memsz8f0
+pgdir:3efec000 |pvaddr:403eb8 | poffset:2eb8| pfilesz270
+sz407000 
+sp407000
+pgdir3efec000 | ustksp406fc8
+pte: 3ebe7647
+
+mo
+
+221 sys_exec
+enter exec,/init
+read 3efee0c0 ,dest 3ebe7000,off 0,sz 1000
+read 3efee0c0 ,dest 3ebe5000,off 1000,sz 1000
+read 3efee0c0 ,dest 3ebe4000,off 2000,sz 28c
+ph.memsz228c
+pgdir:3efec000 |pvaddr:400000 | poffset:0| pfilesz228c
+read 3efee0c0 ,dest 3ebe0000,off 2eb8,sz 270
+ph.memsz8f0
+pgdir:3efec000 |pvaddr:403eb8 | poffset:2eb8| pfilesz270
+sz407000 
+sp407000
+pgdir3efec000 | ustksp406fc8
+pte: 3ebe7647
+96 sys_gettid
+
+mn
+
+enter exec,/init
+va400000
+read ffff00003efee0c0 ,dest ffff00003ebe7000,off 0,sz 1000  ||va0:400000
+read ffff00003efee0c0 ,dest ffff00003ebe5000,off 1000,sz 1000  ||va0:401000
+read ffff00003efee0c0 ,dest ffff00003ebe4000,off 2000,sz 28c  ||va0:402000
+ph.memsz228c
+pgdir:3efec000 |pvaddr:400000 | poffset:0| pfilesz228c
+va403eb8
+read ffff00003efee0c0 ,dest ffff00003ebe0000,off 2eb8,sz 148  ||va0:403000
+read ffff00003efee0c0 ,dest ffff00003ebdf000,off 3000,sz 128  ||va0:404000
+ph.memsz8f0
+pgdir:3efec000 |pvaddr:403eb8 | poffset:2eb8| pfilesz270
+sz407000 
+sp407000
+pgdir3efec000 | ustksp406fc8
+pte: 3ebe7647
+96 sys_gettid

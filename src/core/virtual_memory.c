@@ -26,12 +26,15 @@ int uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, u64 pa) {
     return vmem.uvm_map(pgdir, va, sz, pa);
 }
 
-
 PTEntriesPtr uvm_copy(PTEntriesPtr pgdir) {
     return vmem.uvm_copy(pgdir);
 }
 
-int uvm_alloc(PTEntriesPtr pgdir, usize base, usize stksz, usize oldsz, usize newsz) {
+int uvm_alloc(PTEntriesPtr pgdir,
+              usize base,
+              usize stksz,
+              usize oldsz,
+              usize newsz) {
     return vmem.uvm_alloc(pgdir, base, stksz, oldsz, newsz);
 }
 
@@ -44,7 +47,7 @@ void uvm_switch(PTEntriesPtr pgdir) {
     arch_set_ttbr0(K2P(pgdir));
 }
 
-int copyout(PTEntriesPtr pgdir, void *va, void *p, usize len) {
+int copyout(PTEntriesPtr pgdir, void* va, void* p, usize len) {
     return vmem.copyout(pgdir, va, p, len);
 }
 
@@ -65,6 +68,8 @@ static PTEntriesPtr my_pgdir_init() {
 
 static PTEntriesPtr my_pgdir_walk(PTEntriesPtr pgdir, void* vak, int alloc) {
     /* TO-DO: Lab2 memory*/
+    // printf("walk: pgdir %x |vak %x |alloc%d\n", pgdir, vak, alloc);
+
     for (int level = 3; level > 0; level--) {
         u64* pte = &(pgdir[PX(level, vak)]);
         if (*pte & PTE_VALID) {
@@ -108,6 +113,7 @@ void my_vm_free(PTEntriesPtr pgdir) {
  */
 
 int my_uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, u64 pa) {
+    // printf("uvmmap pgdir:%x| va:%x| pa:%x| sz:%x", pgdir, va, pa, sz);
     /* TO-DO: Lab2 memory*/
     u64 a, last;
     PTEntriesPtr pte;
@@ -147,8 +153,10 @@ static PTEntriesPtr my_uvm_copy(PTEntriesPtr pgdir) {
             break;
         pa = P2K(PTE_ADDRESS(*pte));
         mem = kalloc();
-        memmove(mem, (char*)pa, PGSIZE);
-        uvm_map(newpgdir, i, PGSIZE, mem);
+        memmove(mem, pa, PGSIZE);
+        uvm_map(newpgdir, i, PGSIZE, K2P(mem));
+        // FIXME read-only
+        // (*pte) |= (1 << 7);
     }
     return newpgdir;
 }
@@ -195,8 +203,8 @@ int my_uvm_alloc(PTEntriesPtr pgdir,
     u64 a;
     if (newsz < oldsz)
         return oldsz;
-    if (base + newsz > stksz)
-        PANIC("overflow");
+    // if (base + newsz > stksz)
+    //     PANIC("overflow");
     oldsz = ROUNDUP(oldsz, PGSIZE);
     for (a = oldsz; a < newsz; a += PGSIZE) {
         mem = kalloc();
@@ -205,7 +213,7 @@ int my_uvm_alloc(PTEntriesPtr pgdir,
             return 0;
         }
         memset(mem, 0, PGSIZE);
-        if (uvm_map(pgdir, (void*)a, PGSIZE, (u64)mem) != 0) {
+        if (uvm_map(pgdir, (void*)a, PGSIZE, K2P(mem)) != 0) {
             kfree(mem);
             uvm_dealloc(pgdir, 0, a, oldsz);
         }
@@ -243,7 +251,7 @@ void clearpteu(PTEntriesPtr pgdir, char* uva) {
     }
 
     // in ARM, we change the AP field (ap & 0x3) << 4)
-    *pte = (*pte & ~(0x03U << 6));
+    *pte = (*pte & ~(PTE_USER | (1 << 7))) | (0 << 7);
 }
 
 // PAGEBREAK!
@@ -278,6 +286,33 @@ char* uva2ka1(u64* pgdir, char* uva) {
 
 int my_copyout(PTEntriesPtr pgdir, void* va, void* p, usize len) {
     /* TODO: Lab9 Shell */
+
+    // char* buf = (char*)p;
+    // // first page
+    // do {
+    //     u64 va0 = ROUNDDOWN((u64)va, PGSIZE);
+    //     char* pa0 = uva2ka(pgdir, (char*)va0);
+    //     if (pa0 == 0) {
+    //         return -1;
+    //     }
+    //     u64 start = (u64)va % PGSIZE;
+    //     u32 n = MIN(len, PGSIZE - start);
+    //     memcpy(pa0 + start, buf, n);
+    //     va += n;
+    //     len -= n;
+    //     buf += n;
+    // } while (0);
+    // for (u32 i = 0; i < len; i += PGSIZE) {
+    //     char* pa = uva2ka(pgdir, (char*)(va + i));
+    //     if (pa == 0) {
+    //         return -1;
+    //     }
+    //     u32 n = MIN(len - i, PGSIZE);
+    //     memcpy(pa, buf + i, n);
+    // }
+
+    // return 0;
+
     char *buf, *pa0;
     u64 n, va0;
     buf = p;

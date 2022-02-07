@@ -268,6 +268,7 @@ static usize inode_map(OpContext* ctx,
             *modified = true;
             cache->sync(ctx, bp);
         }
+        // printf("addr:%x|a0:%x|a1:%x\n", addr, a[0], a[1]);
         cache->release(bp);
         return addr;
     }

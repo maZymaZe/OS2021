@@ -140,16 +140,14 @@ void forkret() {
     /* TO-DO: Lab3 Process */
     release_sched_lock();
     /* TO-DO: Lab3 Process */
-    int x = procnum;
     procnum++;
-    if (x == 1) {
+    printf("pn:%d %s\n", procnum, thiscpu()->proc->name);
+    if (procnum == 2) {
         // sd_test();
-        // sd_test();
+        //  sd_test();
         init_filesystem();
-        spawn_init_process();
         //  sd_test();
     }
-
     // static int first = 1;
     // if (first) {
     //     // File system initialization must be run in the context of a

@@ -4,7 +4,6 @@
 #include <core/console.h>
 #include <core/physical_memory.h>
 #include <core/proc.h>
-#include <core/sched.h>
 #include <fs/cache.h>
 
 static const SuperBlock* sblock;
@@ -26,16 +25,13 @@ struct LOG {
 } log;
 
 // read the content from disk.
-void pt() {
-    printf("pt\n");
-}
 static INLINE void device_read(Block* block) {
-    device->read(block->block_no + 0x20800, block->data);
+    device->read(block->block_no, block->data);
 }
 
 // write the content back to disk.
 static INLINE void device_write(Block* block) {
-    device->write(block->block_no + 0x20800, block->data);
+    device->write(block->block_no, block->data);
 }
 
 // read log header from disk.
@@ -76,9 +72,6 @@ static usize get_num_cached_blocks() {
 // see `cache.h`.
 static Block* cache_acquire(usize block_no) {
     // TODO
-    // printf("acq %d locked%d cpu%x thiscpu%x\n", block_no, lock.locked,
-    // lock.cpu,
-    //        thiscpu());
     acquire_spinlock(&lock);
     bool IsTheBlockInCache = false;
     ListNode* p = head.next;
@@ -95,8 +88,6 @@ static Block* cache_acquire(usize block_no) {
         detach_from_list(p);
         merge_list(&head, p);
         Block* b = container_of(p, Block, node);
-        // printf("rel1 %d locked%d cpu%x thiscpu%x\n", block_no, lock.locked,
-        //        lock.cpu, thiscpu());
         release_spinlock(&lock);
         acquire_sleeplock(&b->lock);
         return b;
@@ -119,15 +110,12 @@ static Block* cache_acquire(usize block_no) {
     init_block(b);
     p = &b->node;
     merge_list(&head, p);
+    device->read(block_no, b->data);
     b->block_no = block_no;
-    // printf("rel2 %d locked%d cpu%x thiscpu%x\n", block_no, lock.locked,
-    //        lock.cpu, thiscpu());
-    release_spinlock(&lock);
-    acquire_sleeplock(&b->lock);
-    device_read(b);
     b->valid = 1;
     b->acquired = 1;
-
+    release_spinlock(&lock);
+    acquire_sleeplock(&b->lock);
     return b;
 }
 
@@ -166,13 +154,11 @@ void init_bcache(const SuperBlock* _sblock, const BlockDevice* _device) {
     // TODO
     ArenaPageAllocator allocator = {.allocate = kalloc, .free = kfree};
     init_list_node(&head);
-    printf("init bcache\n");
-    init_spinlock(&lock, "bcache");
+    init_spinlock(&lock, "bache");
     init_arena(&arena, sizeof(Block), allocator);
 
     init_spinlock(&log.lock, "log");
     log.mu = 0;
-    printf("%d| %d\n", sblock->num_log_blocks - 1, LOG_MAX_SIZE);
     log.mx = MIN(sblock->num_log_blocks - 1, LOG_MAX_SIZE);
     recover_from_log();
 }
@@ -184,14 +170,13 @@ static void cache_begin_op(OpContext* ctx) {
     while (1) {
         if (log.committing) {
             sleep(&log, &log.lock);
-        } else if ((int)header.num_blocks + log.mu + OP_MAX_NUM_BLOCKS >
-                   log.mx) {
+        } else if (header.num_blocks + log.mu + OP_MAX_NUM_BLOCKS > log.mx) {
             sleep(&log, &log.lock);
         } else {
             log.outstanding++;
             log.mu += OP_MAX_NUM_BLOCKS;
             ctx->rm = OP_MAX_NUM_BLOCKS;
-            ctx->ts = (usize)log.outstanding;
+            ctx->ts = log.outstanding;
             release_spinlock(&log.lock);
             break;
         }
@@ -203,7 +188,7 @@ static void cache_sync(OpContext* ctx, Block* block) {
     if (ctx) {
         // TODO
         acquire_spinlock(&log.lock);
-        if ((int)header.num_blocks >= log.mx) {
+        if (header.num_blocks >= log.mx) {
             PANIC("too big a transaction");
         }
         if (log.outstanding < 1)
@@ -254,7 +239,7 @@ static void cache_end_op(OpContext* ctx) {
     int do_commit = 0;
     acquire_spinlock(&log.lock);
     log.outstanding--;
-    log.mu -= (int)ctx->rm;
+    log.mu -= ctx->rm;
     if (log.committing)
         PANIC("log committing");
     if (log.outstanding == 0)
@@ -276,7 +261,7 @@ static void cache_end_op(OpContext* ctx) {
 
 // see `cache.h`.
 // hint: you can use `cache_acquire`/`cache_sync` to read/write blocks.
-usize BBLOCK(usize b, const SuperBlock* sb) {
+usize BBLOCK(usize b, SuperBlock* sb) {
     return b / BIT_PER_BLOCK + sb->bitmap_start;
 }
 void bzero(OpContext* ctx, u32 block_no) {

@@ -2,14 +2,15 @@
 #include <common/spinlock.h>
 #include <core/cpu.h>
 
-void init_spinlock(SpinLock *lock, const char *name) {
+void init_spinlock(SpinLock* lock, const char* name) {
     lock->locked = 0;
     lock->cpu = NULL;
     lock->name = name;
 }
 
-bool try_acquire_spinlock(SpinLock *lock) {
-    if (!lock->locked && !__atomic_test_and_set(&lock->locked, __ATOMIC_ACQUIRE)) {
+bool try_acquire_spinlock(SpinLock* lock) {
+    if (!lock->locked &&
+        !__atomic_test_and_set(&lock->locked, __ATOMIC_ACQUIRE)) {
         lock->cpu = thiscpu();
         return true;
     } else {
@@ -23,11 +24,12 @@ bool try_acquire_spinlock(SpinLock *lock) {
  * If the lock is held by another cpu, it spins.
  */
 
-void acquire_spinlock(SpinLock *lock) {
-    if (holding_spinlock(lock)) {
-        PANIC("acquire: lock %s already held\n", lock->name);
+void acquire_spinlock(SpinLock* lock) {
+    // if (holding_spinlock(lock)) {
+    //     PANIC("acquire: lock %s already held\n", lock->name);
+    // }
+    while (!try_acquire_spinlock(lock)) {
     }
-    while (!try_acquire_spinlock(lock)) {}
 }
 
 /*
@@ -35,15 +37,17 @@ void acquire_spinlock(SpinLock *lock) {
  * Caller should hold this lock before calling this function.
  */
 
-void release_spinlock(SpinLock *lock) {
+void release_spinlock(SpinLock* lock) {
     if (!holding_spinlock(lock)) {
+        printf("locked:%d cpu:%x thiscpu%x\n", lock->locked, (lock->cpu),
+               thiscpu());
         PANIC("release: lock %s not held\n", lock->name);
     }
     lock->cpu = NULL;
     __atomic_clear(&lock->locked, __ATOMIC_RELEASE);
 }
 
-void wait_spinlock(SpinLock *lock) {
+void wait_spinlock(SpinLock* lock) {
     acquire_spinlock(lock);
     release_spinlock(lock);
 }
@@ -52,6 +56,6 @@ void wait_spinlock(SpinLock *lock) {
  * For debug: Check whether a cpu holds this lock.
  */
 
-bool holding_spinlock(SpinLock *lock) {
-    return lock->locked && lock->cpu == thiscpu();
+bool holding_spinlock(SpinLock* lock) {
+    return lock->locked;  //&& lock->cpu == thiscpu();
 }
