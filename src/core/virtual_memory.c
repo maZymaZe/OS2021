@@ -143,6 +143,7 @@ int my_uvm_map(PTEntriesPtr pgdir, void* va, size_t sz, u64 pa) {
  */
 static PTEntriesPtr my_uvm_copy(PTEntriesPtr pgdir) {
     /* TODO: Lab9 Shell */
+    // printf("enter uvmcopy\n");
     u64* pte;
     u64 pa;
     char* mem;
@@ -155,8 +156,6 @@ static PTEntriesPtr my_uvm_copy(PTEntriesPtr pgdir) {
         mem = kalloc();
         memmove(mem, pa, PGSIZE);
         uvm_map(newpgdir, i, PGSIZE, K2P(mem));
-        // FIXME read-only
-        // (*pte) |= (1 << 7);
     }
     return newpgdir;
 }
@@ -209,13 +208,13 @@ int my_uvm_alloc(PTEntriesPtr pgdir,
     for (a = oldsz; a < newsz; a += PGSIZE) {
         mem = kalloc();
         if (mem == 0) {
-            uvm_dealloc(pgdir, 0, a, oldsz);
+            uvm_dealloc(pgdir, base, a, oldsz);
             return 0;
         }
         memset(mem, 0, PGSIZE);
         if (uvm_map(pgdir, (void*)a, PGSIZE, K2P(mem)) != 0) {
             kfree(mem);
-            uvm_dealloc(pgdir, 0, a, oldsz);
+            uvm_dealloc(pgdir, base, a, oldsz);
         }
     }
     return (int)newsz;
@@ -251,7 +250,7 @@ void clearpteu(PTEntriesPtr pgdir, char* uva) {
     }
 
     // in ARM, we change the AP field (ap & 0x3) << 4)
-    *pte = (*pte & ~(PTE_USER | (1 << 7))) | (0 << 7);
+    *pte &= ~PTE_USER;
 }
 
 // PAGEBREAK!

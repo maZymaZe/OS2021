@@ -43,7 +43,7 @@ void init_system_once() {
 }
 
 void hello() {
-    printf("CPU %d: HELLO!\n", cpuid());
+    // printf("CPU %d: HELLO!\n", cpuid());
     reset_clock(1000);
     yield();
 }
@@ -69,8 +69,8 @@ void main() {
     // test_kernel_interrupt();
     if (cpuid() == 0) {
         spawn_init_process_sd();
-        // spawn_init_process_sd();
-        spawn_init_process();
+        spawn_init_process_sd();
+        // spawn_init_process();
         // spawn_init_process();
         // container_test_init();
         enter_scheduler();

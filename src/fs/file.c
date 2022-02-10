@@ -21,6 +21,7 @@ void fileinit() {
 /* Allocate a file structure. */
 struct file* filealloc() {
     /* TODO: Lab9 Shell */
+    // printf("enter filealloc\n");
     struct file* f;
     acquire_spinlock(&ftable.lock);
     for (int i = 0; i < NFILE; i++) {
@@ -38,6 +39,7 @@ struct file* filealloc() {
 /* Increment ref count for file f. */
 struct file* filedup(struct file* f) {
     /* TODO: Lab9 Shell */
+    // printf("enter fileup\n");
     acquire_spinlock(&ftable.lock);
     if (f->ref < 1)
         PANIC("up a ref0 file");
@@ -49,6 +51,7 @@ struct file* filedup(struct file* f) {
 /* Close file f. (Decrement ref count, close when reaches 0.) */
 void fileclose(struct file* f) {
     /* TODO: Lab9 Shell */
+    // printf("enter fileclose\n");
     acquire_spinlock(&ftable.lock);
     if (f->ref < 1)
         PANIC("close a ref0 file");
@@ -76,6 +79,7 @@ void fileclose(struct file* f) {
 /* Get metadata about file f. */
 int filestat(struct file* f, struct stat* st) {
     /* TODO: Lab9 Shell */
+    // printf("enter filestat\n");
     if (f->type == FD_INODE) {
         inodes.lock(f->ip);
         stati(f->ip, st);
@@ -88,6 +92,7 @@ int filestat(struct file* f, struct stat* st) {
 /* Read from file f. */
 isize fileread(struct file* f, char* addr, isize n) {
     /* TODO: Lab9 Shell */
+    // printf("enter fileread\n");
     if (!f->readable)
         return -1;
     if (f->type == FD_INODE) {
@@ -104,6 +109,7 @@ isize fileread(struct file* f, char* addr, isize n) {
 /* Write to file f. */
 isize filewrite(struct file* f, char* addr, isize n) {
     /* TODO: Lab9 Shell */
+    // printf("enter filewrite\n");
     if (!f->writable)
         return -1;
     if (f->type == FD_INODE) {

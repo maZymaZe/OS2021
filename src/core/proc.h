@@ -6,8 +6,8 @@
 #include <core/trapframe.h>
 #include <fs/inode.h>
 
-#define NPROC      14   /* maximum number of processes */
-#define NOFILE     8    /* open files per process */
+#define NPROC 14        /* maximum number of processes */
+#define NOFILE 8        /* open files per process */
 #define KSTACKSIZE 4096 /* size of per-process kernel stack */
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
@@ -49,20 +49,21 @@ struct proc {
     void* chan;              /* If non-zero, sleeping on chan           */
     int killed;              /* If non-zero, have been killed           */
     char name[16];           /* Process name (debugging)                */
-    void *cont;
+    void* cont;
     bool is_scheduler;
 
-    struct file *ofile[NOFILE]; /* Open files */
-    Inode *cwd;                 /* Current directory */
+    struct file* ofile[NOFILE]; /* Open files */
+    Inode* cwd;                 /* Current directory */
     u64 stksz, base;
 };
 typedef struct proc proc;
 void init_proc();
 void spawn_init_process();
+void spawn_init_process_sd();
 void yield();
 NO_RETURN void exit();
-void sleep(void *chan, SpinLock *lock);
-void wakeup(void *chan);
+void sleep(void* chan, SpinLock* lock);
+void wakeup(void* chan);
 void idle_init();
 int growproc(int n);
 int wait();

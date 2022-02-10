@@ -19,7 +19,7 @@
 // and the pages from va to va+sz must already be mapped.
 // Returns 0 on success, -1 on failure.
 static int loaduvm(PTEntriesPtr pgdir, u64 va, Inode* ip, u32 offset, u32 sz) {
-    printf("va%x\n", va);
+    // printf("va%x\n", va);
 
     int n;
     u64 pa, i, va0;
@@ -31,8 +31,8 @@ static int loaduvm(PTEntriesPtr pgdir, u64 va, Inode* ip, u32 offset, u32 sz) {
         n = MIN(PGSIZE - (va - va0), sz);
         if (inodes.read(ip, (u8*)pa + (va - va0), offset, (usize)n) != (usize)n)
             return -1;
-        printf("read %llx ,dest %llx,off %llx,sz %llx  ||va0:%llx\n", ip, pa,
-               offset, n, va0);
+        // printf("read %llx ,dest %llx,off %llx,sz %llx  ||va0:%llx\n", ip, pa,
+        //        offset, n, va0);
         offset += n;
         sz -= n;
         va += n;
@@ -95,7 +95,7 @@ static int loaduvm(PTEntriesPtr pgdir, u64 va, Inode* ip, u32 offset, u32 sz) {
 
 int execve(const char* path, char* const argv[], char* const envp[]) {
     /* TODO: Lab9 Shell */
-    printf("enter exec,%s\n", path);
+    // printf("enter exec,%s\n", path);
     if (envp) {
     }
     OpContext ctx;
@@ -105,10 +105,10 @@ int execve(const char* path, char* const argv[], char* const envp[]) {
         return -1;
     inodes.lock(ip);
 
-    for (int i = 0; i < 12; i++) {
-        printf("%d: %x\n", i, ip->entry.addrs[i]);
-    }
-    printf("idr %x\n", ip->entry.indirect);
+    // for (int i = 0; i < 12; i++) {
+    //     printf("%d: %x\n", i, ip->entry.addrs[i]);
+    // }
+    // printf("idr %x\n", ip->entry.indirect);
 
     Elf64_Ehdr elf;
     PTEntriesPtr pgdir = 0;
@@ -140,9 +140,9 @@ int execve(const char* path, char* const argv[], char* const envp[]) {
                     (u32)ph.p_filesz) < 0) {
             goto bad;
         }
-        printf("ph.memsz%x\n", ph.p_memsz);
-        printf("pgdir:%x |pvaddr:%x | poffset:%x| pfilesz%x\n", pgdir,
-               ph.p_vaddr, ph.p_offset, ph.p_filesz);
+        // printf("ph.memsz%x\n", ph.p_memsz);
+        // printf("pgdir:%x |pvaddr:%x | poffset:%x| pfilesz%x\n", pgdir,
+        //        ph.p_vaddr, ph.p_offset, ph.p_filesz);
     }
     inodes.unlock(ip);
     inodes.put(&ctx, ip);
@@ -151,14 +151,14 @@ int execve(const char* path, char* const argv[], char* const envp[]) {
     ip = 0;
     sz = ROUNDUP(sz, PGSIZE);
     sz = (u64)uvm_alloc(pgdir, 0, 8192, sz, sz + (PGSIZE << 1));
-    printf("sz%x \n", sz);
+    // printf("sz%x \n", sz);
     if (!sz)
         goto bad;
     // FIXME:clearpteu
     // clearpteu(pgdir, (char*)(sz - 2 * PGSIZE));
     clearpteu(pgdir, (char*)(sz - (PGSIZE << 1)));
     u64 sp = sz;
-    printf("sp%x\n", sp);
+    // printf("sp%x\n", sp);
     int argc = 0;
     u64 ustk[3 + 32 + 1];
     if (argv) {
@@ -195,20 +195,35 @@ int execve(const char* path, char* const argv[], char* const envp[]) {
         goto bad;
 
     sp -= 8;
-    if (copyout(pgdir, (void*)sp, &thiscpu()->proc->tf->x0, 8) < 0)
+    if (copyout(pgdir, (void*)sp, &argc, 8) < 0)
         goto bad;
 
     u64* oldpgdir = thiscpu()->proc->pgdir;
+    strncpy(thiscpu()->proc->name, path, strlen(path) + 1);
     thiscpu()->proc->pgdir = pgdir;
     thiscpu()->proc->sz = sz;
     thiscpu()->proc->tf->sp_el0 = sp;
     thiscpu()->proc->tf->elr_el1 = elf.e_entry;
     uvm_switch(thiscpu()->proc->pgdir);
-    printf("pgdir%x | ustksp%x\n", pgdir, thiscpu()->proc->tf->x1);
+    // printf("elrel1%x\n", thiscpu()->proc->tf->elr_el1);
+    // printf("pgdir%x | ustksp%x\n", pgdir, thiscpu()->proc->tf->x1);
     vm_free(oldpgdir);
 
-    printf("pte: %llx\n", *pgdir_walk(pgdir, ROUNDDOWN(0x40014c, PGSIZE), 0));
-
+    // printf("pte: %llx\n", *pgdir_walk(pgdir, ROUNDDOWN(0x40014c, PGSIZE),
+    // 0));
+    // for (int i = 0; i <= 6; i++) {
+    //     printf("%d----------------------\n", i);
+    //     char* pa = uva2ka(pgdir, 0x400000 + i * PGSIZE);
+    //     for (u64 j = 0; j < PGSIZE; j++)
+    //         printf("%x ", pa[j]);
+    //     printf("----------------------\n");
+    // }
+    // for (int i = 0; i <= 6; i++) {
+    //     printf("%d----------------------\n", i);
+    //     u64* pte = pgdir_walk(pgdir, 0x400000 + i * PGSIZE, 0);
+    //     printf("%x\n", PTE_FLAGS(*pte));
+    //     printf("----------------------\n");
+    // }
     return 0;
 bad:
     if (pgdir)

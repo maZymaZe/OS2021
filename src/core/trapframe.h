@@ -14,6 +14,7 @@
 
 typedef struct {
     /* TO-DO: Lab3 Interrupt */
+    u64 tpidr_el0;
     u64 elr_el1;   // pc
     u64 spsr_el1;  // spsr
     u64 sp_el0;    // sp

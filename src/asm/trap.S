@@ -29,11 +29,13 @@ trap_entry:
     stp x5, x6, [sp, #-16]!
     stp x3, x4, [sp, #-16]!
     stp x1, x2, [sp, #-16]!
-    add x1, sp, #0xf0   //15 lines before, sp moved 0xf0
-    mrs x2, spsr_el1
-    mrs x3, elr_el1
-    stp x1, x0, [sp, #-16]!
-    stp x3, x2, [sp, #-16]!
+    str x0, [sp,#-8]!
+    mrs x1, tpidr_el0
+    mrs x2, elr_el1
+    mrs x3, spsr_el1
+    mrs x4, sp_el0
+    stp x3, x4, [sp, #-16]!
+    stp x1, x2, [sp, #-16]!
 
 
 
@@ -60,11 +62,13 @@ trap_return:
      * and then `pop x2`.
      */
     /* TO-DO: Lab3 Interrupt */
-    ldp x3, x2, [sp], #16
-    ldp x1, x0, [sp], #16
-    msr elr_el1, x3
-    msr spsr_el1, x2
-    msr sp_el0, x1
+    ldp x1, x2, [sp], #16
+    ldp x3, x4, [sp], #16
+    msr sp_el0, x4
+    msr spsr_el1, x3
+    msr elr_el1, x2
+    msr tpidr_el0, x1
+    ldr x0, [sp], #8
     ldp	x1, x2, [sp], #16
     ldp	x3, x4, [sp], #16
     ldp	x5, x6, [sp], #16

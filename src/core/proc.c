@@ -22,7 +22,7 @@ static struct proc* initproc;
  */
 SpinLock waitlock;
 void init_proc() {
-    init_spinlock(&waitlock, "waitlock");
+    // init_spinlock(&waitlock, "waitlock");
 }
 /*
  * Look through the process table for an UNUSED proc.
@@ -103,6 +103,10 @@ void spawn_init_process() {
     p->sz = PGSIZE;
 
     initproc = p;
+    OpContext ctx;
+    bcache.begin_op(&ctx);
+    p->cwd = namei("/", &ctx);
+    bcache.end_op(&ctx);
 }
 void spawn_init_process_sd() {
     struct proc* p;
@@ -138,14 +142,19 @@ void spawn_init_process_sd() {
 int procnum = 0;
 void forkret() {
     /* TO-DO: Lab3 Process */
-    release_sched_lock();
+
     /* TO-DO: Lab3 Process */
     procnum++;
+    int x = procnum;
+    release_sched_lock();
     printf("pn:%d %s\n", procnum, thiscpu()->proc->name);
-    if (procnum == 2) {
+    if (x == 2) {
         // sd_test();
         //  sd_test();
         init_filesystem();
+        printf("spawn init\n");
+        spawn_init_process();
+
         //  sd_test();
     }
     // static int first = 1;
@@ -162,10 +171,10 @@ void forkret() {
 }
 
 void wakeup1(void* chan) {
-    proc* p;
+    proc *p, *cp = thiscpu()->proc;
     for (int i = 0; i < NPROC; i++) {
         p = thiscpu()->scheduler->ptable.proc + i;
-        if (p->state == SLEEPING && p->chan == chan) {
+        if (p != cp && p->state == SLEEPING && p->chan == chan) {
             p->state = RUNNABLE;
         }
     }
@@ -235,16 +244,21 @@ void yield() {
  */
 void sleep(void* chan, SpinLock* lock) {
     /* TODO: lab6 container */
-    acquire_sched_lock();
-    release_spinlock(lock);
+    SpinLock* lk = &(thiscpu()->scheduler->ptable.lock);
+    if (lock != lk) {
+        acquire_sched_lock();
+        release_spinlock(lock);
+    }
 
     struct proc* p = thiscpu()->proc;
     p->chan = chan;
     p->state = SLEEPING;
     sched();
     p->chan = 0;
-    release_sched_lock();
-    acquire_spinlock(lock);
+    if (lock != lk) {
+        release_sched_lock();
+        acquire_spinlock(lock);
+    }
 }
 
 /* Wake up all processes sleeping on chan. */
@@ -303,15 +317,16 @@ void add_loop_test(int times) {
  */
 int growproc(int n) {
     /* TODO: lab9 shell */
+    // printf("enter growproc\n");
     proc* p = thiscpu()->proc;
     usize sz = p->sz;
     if (n > 0) {
         // FIXME
-        sz = uvm_alloc(p->pgdir, 0, 8192, sz, sz + n);
+        sz = uvm_alloc(p->pgdir, p->base, p->stksz, sz, sz + n);
         if (sz == 0)
             return -1;
     } else if (n < 0) {
-        sz = uvm_dealloc(p->pgdir, 0, sz, sz + n);
+        sz = uvm_dealloc(p->pgdir, p->base, sz, sz + n);
     }
     p->sz = sz;
     return 0;
@@ -326,19 +341,20 @@ int growproc(int n) {
  */
 int fork() {
     /* TODO: Lab9 shell */
+    // printf("enter fork\n");
     proc *np, *p = thiscpu()->proc;
     np = alloc_proc();
     if (np == 0)
         return -1;
     np->pgdir = uvm_copy(p->pgdir);
     if (np->pgdir == 0) {
-        kfree(np->kstack);
+        kfree((void*)(np->kstack) - KSTACKSIZE);
         np->kstack = 0;
         np->state = UNUSED;
         return -1;
     }
     np->sz = p->sz;
-    memcpy(np->tf, p->tf, sizeof(*(p->tf)));
+    *(np->tf) = *(p->tf);
     np->tf->x0 = 0;
     np->parent = p;
 
@@ -351,7 +367,7 @@ int fork() {
     np->cwd = inodes.share(p->cwd);
     np->state = RUNNABLE;
 
-    return p->pid;
+    return np->pid;
 }
 
 /*
@@ -362,7 +378,9 @@ int fork() {
  */
 int wait() {
     /* TODO: Lab9 shell. */
+    // printf("enter wait");
     proc *p, *tp;
+    SpinLock* lk = &(thiscpu()->scheduler->ptable.lock);
     tp = thiscpu()->proc;
     p = thiscpu()->scheduler->ptable.proc;
     int kids, pid;
@@ -381,7 +399,7 @@ int wait() {
                 q->pid = 0;
                 q->parent = 0;
                 vm_free(q->pgdir);
-                kfree(q->kstack);
+                kfree((void*)(q->kstack) - KSTACKSIZE);
                 release_sched_lock();
                 return pid;
             }
@@ -391,7 +409,7 @@ int wait() {
             return -1;
         }
         // FIXME
-        sleep(tp, &waitlock);
+        sleep(tp, lk);
     }
     PANIC("???");
 }

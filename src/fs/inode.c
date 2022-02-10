@@ -466,7 +466,12 @@ static Inode* namex(const char* path,
             return ip;
         }
         // FIXME:call iget here
-        nx = inode_get(inode_lookup(ip, name, 0));
+        int ind_no = inode_lookup(ip, name, 0);
+        if (ind_no == 0) {
+            inode_unlock(ip);
+            return 0;
+        }
+        nx = inode_get(ind_no);
         if (nx == 0) {
             inode_unlock(ip);
             inode_put(ctx, ip);

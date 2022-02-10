@@ -82,7 +82,7 @@ isize sys_read() {
     struct file* f;
     int n;
     u64 p;
-    if (argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argu64(1, &p) < 0)
+    if (argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, (usize)n) < 0)
         return -1;
     return fileread(f, p, n);
     return -1;
@@ -96,7 +96,7 @@ isize sys_write() {
     struct file* f;
     int n;
     u64 p;
-    if (argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argu64(1, &p) < 0)
+    if (argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, (usize)n) < 0)
         return -1;
     return filewrite(f, p, n);
     return -1;
@@ -145,7 +145,7 @@ int sys_fstat() {
     /* TODO: Lab9 Shell */
     struct file* f;
     u64 st;  // user pointer to struct stat
-    if (argfd(0, 0, &f) < 0 || argu64(1, &st) < 0)
+    if (argfd(0, 0, &f) < 0 || argptr(1, &st, sizeof(struct stat)) < 0)
         return -1;
     return filestat(f, st);
 }
@@ -200,6 +200,7 @@ Inode* create(char* path,
               short minor,
               OpContext* ctx) {
     /* TODO: Lab9 Shell */
+    // printf("enter create\n");
     u32 off;
     Inode *ip, *dp;
     char nm[FILE_NAME_MAX_LENGTH] = {0};
@@ -222,7 +223,7 @@ Inode* create(char* path,
 
         return 0;
     }
-    ip = inodes.alloc(ctx, type);
+    ip = inodes.get(inodes.alloc(ctx, type));
     if (ip == 0)
         PANIC("alloc failed");
     inodes.lock(ip);
@@ -245,6 +246,7 @@ Inode* create(char* path,
 }
 
 int sys_openat() {
+    // printf("enter openat\n");
     char* path;
     int dirfd, fd, omode;
     struct file* f;
@@ -307,6 +309,7 @@ int sys_openat() {
 }
 
 int sys_mkdirat() {
+    // printf("enter mkdir\n");
     i32 dirfd, mode;
     char* path;
     Inode* ip;
@@ -334,6 +337,7 @@ int sys_mkdirat() {
 }
 
 int sys_mknodat() {
+    // printf("enter mknodat\n");
     Inode* ip;
     char* path;
     i32 dirfd, major, minor;
@@ -361,6 +365,7 @@ int sys_mknodat() {
 }
 
 int sys_chdir() {
+    // printf("enter chdir\n");
     char* path;
     Inode* ip;
     struct proc* curproc = thiscpu()->proc;

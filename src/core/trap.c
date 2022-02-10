@@ -55,11 +55,10 @@ void trap_global_handler(Trapframe* frame) {
         }
     }
     /*
-         * Hint: For testing, you can set frame->x6 to 0xdead here.
-         * Use GDB to check whether x6 is correct after `trap_return` finishes.
-         * If another register changes to 0xdead, fix the bug in trapframe
-design.
-         */
+     * Hint: For testing, you can set frame->x6 to 0xdead here.
+     * Use GDB to check whether x6 is correct after `trap_return` finishes.
+     * If another register changes to 0xdead, fix the bug in trapframe design.
+     */
 }
 
 void trap_error_handler(u64 type) {
