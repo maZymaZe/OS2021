@@ -15,7 +15,7 @@ void forkret();
 extern void trap_return();
 extern void initenter();
 
-static struct proc* initproc;
+static struct proc *initproc;
 
 /*
  * Initialize the spinlock for ptable to serialize the access to ptable
@@ -38,15 +38,15 @@ void init_proc() {
  * Step 7 (TODO): Set the context to work with `swtch()`, `forkret()` and
  * `trap_return()`.
  */
-static struct proc* alloc_proc() {
-    struct proc* p;
+static struct proc *alloc_proc() {
+    struct proc *p;
     /* TO-DO: Lab3 Process */
     p = alloc_pcb();
     if (p == 0) {
         return 0;
     }
     p->state = EMBRYO;
-    void* stp = kalloc();
+    void *stp = kalloc();
     // kalloc cleaned the page
     if (stp == 0) {
         p->state = UNUSED;
@@ -54,10 +54,9 @@ static struct proc* alloc_proc() {
     }
 
     p->kstack = stp + KSTACKSIZE;
-    p->tf = (Trapframe*)(stp + KSTACKSIZE - sizeof(Trapframe));
+    p->tf = (Trapframe *)(stp + KSTACKSIZE - sizeof(Trapframe));
 
-    p->context =
-        (stp + KSTACKSIZE - sizeof(Trapframe) - sizeof(struct context));
+    p->context = (stp + KSTACKSIZE - sizeof(Trapframe) - sizeof(struct context));
     p->context->r30 = (u64)initenter;
 
     return p;
@@ -76,7 +75,7 @@ static struct proc* alloc_proc() {
  * Step 6 (TODO): Set proc->sz.
  */
 void spawn_init_process() {
-    struct proc* p;
+    struct proc *p;
     extern char icode[], eicode[];
     p = alloc_proc();
 
@@ -84,12 +83,12 @@ void spawn_init_process() {
     if (p == 0) {
         PANIC("failed alloc proc");
     }
-    void* newpgdir = pgdir_init();
+    void *newpgdir = pgdir_init();
     if (newpgdir == 0) {
         PANIC("failed to alloc pgdir");
     }
     p->pgdir = newpgdir;
-    void* newpage = kalloc();
+    void *newpage = kalloc();
     memcpy(newpage, icode, eicode - icode);
     strncpy(p->name, "initproc", sizeof(p->name));
     uvm_map(newpgdir, 0, PGSIZE, K2P(newpage));
@@ -109,7 +108,7 @@ void spawn_init_process() {
     bcache.end_op(&ctx);
 }
 void spawn_init_process_sd() {
-    struct proc* p;
+    struct proc *p;
     extern char ispin[], eicode[];
     p = alloc_proc();
 
@@ -117,12 +116,12 @@ void spawn_init_process_sd() {
     if (p == 0) {
         PANIC("failed alloc proc");
     }
-    void* newpgdir = pgdir_init();
+    void *newpgdir = pgdir_init();
     if (newpgdir == 0) {
         PANIC("failed to alloc pgdir");
     }
     p->pgdir = newpgdir;
-    void* newpage = kalloc();
+    void *newpage = kalloc();
     memcpy(newpage, ispin, eicode - ispin);
     strncpy(p->name, "sdproc", sizeof(p->name));
     uvm_map(newpgdir, 0, PGSIZE, K2P(newpage));
@@ -170,7 +169,7 @@ void forkret() {
     return;
 }
 
-void wakeup1(void* chan) {
+void wakeup1(void *chan) {
     proc *p, *cp = thiscpu()->proc;
     for (int i = 0; i < NPROC; i++) {
         p = thiscpu()->scheduler->ptable.proc + i;
@@ -193,7 +192,7 @@ void wakeup1(void* chan) {
  * Why not set the state to UNUSED in this function?
  */
 NO_RETURN void exit() {
-    proc* p = thiscpu()->proc;
+    proc *p = thiscpu()->proc;
     /* TODO: Lab9 Shell */
 
     if (p == initproc) {
@@ -213,11 +212,11 @@ NO_RETURN void exit() {
     acquire_sched_lock();
     wakeup1(p->parent);
     for (int i = 0; i < NPROC; i++) {
-        proc* q = thiscpu()->scheduler->ptable.proc + i;
+        proc *q = thiscpu()->scheduler->ptable.proc + i;
         if (q->parent == p) {
-            p->parent = initproc;
-            if (p->state == ZOMBIE) {
-                wakeup1(p->parent);
+            q->parent = initproc;
+            if (q->state == ZOMBIE) {
+                wakeup1(q->parent);
             }
         }
     }
@@ -232,7 +231,7 @@ NO_RETURN void exit() {
 void yield() {
     /* TODO: lab6 container */
     acquire_sched_lock();
-    struct proc* p = thiscpu()->proc;
+    struct proc *p = thiscpu()->proc;
     p->state = RUNNABLE;
     sched();
     release_sched_lock();
@@ -242,15 +241,15 @@ void yield() {
  * Atomically release lock and sleep on chan.
  * Reacquires lock when awakened.
  */
-void sleep(void* chan, SpinLock* lock) {
+void sleep(void *chan, SpinLock *lock) {
     /* TODO: lab6 container */
-    SpinLock* lk = &(thiscpu()->scheduler->ptable.lock);
+    SpinLock *lk = &(thiscpu()->scheduler->ptable.lock);
     if (lock != lk) {
         acquire_sched_lock();
         release_spinlock(lock);
     }
 
-    struct proc* p = thiscpu()->proc;
+    struct proc *p = thiscpu()->proc;
     p->chan = chan;
     p->state = SLEEPING;
     sched();
@@ -262,11 +261,11 @@ void sleep(void* chan, SpinLock* lock) {
 }
 
 /* Wake up all processes sleeping on chan. */
-void wakeup(void* chan) {
+void wakeup(void *chan) {
     /* TODO: lab6 container */
     acquire_sched_lock();
-    struct proc* cp = thiscpu()->proc;
-    struct proc* p;
+    struct proc *cp = thiscpu()->proc;
+    struct proc *p;
     for (int i = 0; i < NPROC; i++) {
         p = &thiscpu()->scheduler->ptable.proc[i];
         if (p != cp && p->state == SLEEPING && p->chan == chan) {
@@ -283,18 +282,18 @@ void wakeup(void* chan) {
 void add_loop_test(int times) {
     for (int i = 0; i < times; i++) {
         /* TODO: lab6 container */
-        struct proc* p;
+        struct proc *p;
         extern char loop_start[], loop_end[];
         p = alloc_proc();
         if (p == 0) {
             PANIC("failed alloc proc");
         }
-        void* newpgdir = pgdir_init();
+        void *newpgdir = pgdir_init();
         if (newpgdir == 0) {
             PANIC("failed to alloc pgdir");
         }
         p->pgdir = newpgdir;
-        void* newpage = kalloc();
+        void *newpage = kalloc();
         memcpy(newpage, loop_start, loop_end - loop_start);
         strncpy(p->name, "initproc", sizeof(p->name));
         uvm_map(newpgdir, 0, PGSIZE, K2P(newpage));
@@ -318,7 +317,7 @@ void add_loop_test(int times) {
 int growproc(int n) {
     /* TODO: lab9 shell */
     // printf("enter growproc\n");
-    proc* p = thiscpu()->proc;
+    proc *p = thiscpu()->proc;
     usize sz = p->sz;
     if (n > 0) {
         // FIXME
@@ -348,7 +347,7 @@ int fork() {
         return -1;
     np->pgdir = uvm_copy(p->pgdir);
     if (np->pgdir == 0) {
-        kfree((void*)(np->kstack) - KSTACKSIZE);
+        kfree((void *)(np->kstack) - KSTACKSIZE);
         np->kstack = 0;
         np->state = UNUSED;
         return -1;
@@ -380,7 +379,7 @@ int wait() {
     /* TODO: Lab9 shell. */
     // printf("enter wait");
     proc *p, *tp;
-    SpinLock* lk = &(thiscpu()->scheduler->ptable.lock);
+    SpinLock *lk = &(thiscpu()->scheduler->ptable.lock);
     tp = thiscpu()->proc;
     p = thiscpu()->scheduler->ptable.proc;
     int kids, pid;
@@ -388,7 +387,7 @@ int wait() {
     while (true) {
         kids = 0;
         for (int i = 0; i < NPROC; i++) {
-            proc* q = p + i;
+            proc *q = p + i;
             if (q->parent != tp)
                 continue;
             kids = 1;
@@ -399,7 +398,7 @@ int wait() {
                 q->pid = 0;
                 q->parent = 0;
                 vm_free(q->pgdir);
-                kfree((void*)(q->kstack) - KSTACKSIZE);
+                kfree((void *)(q->kstack) - KSTACKSIZE);
                 release_sched_lock();
                 return pid;
             }
